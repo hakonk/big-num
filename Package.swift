@@ -30,5 +30,11 @@ let package = Package(
         ),
         .target(name: "CBigNumBoringSSL"),
         .testTarget(name: "BigNumTests", dependencies: ["BigNum"]),
+        .executableTarget(
+            name: "Benchmarks",
+            dependencies: ["BigNum"],
+            path: "Sources/Benchmarks",
+            swiftSettings: defaultSwiftSettings
+        ),
     ]
 )

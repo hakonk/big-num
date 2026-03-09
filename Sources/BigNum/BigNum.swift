@@ -14,7 +14,9 @@ public import Foundation
 
 /// Swift wrapper class for BIGNUM functions in BoringSSL library
 public final class BigNum {
-    internal let ctx: UnsafeMutablePointer<BIGNUM>?
+    // @usableFromInline allows @inlinable callers in this module (or future
+    // public @inlinable wrappers) to access ctx without making it public API.
+    @usableFromInline internal let ctx: UnsafeMutablePointer<BIGNUM>?
 
     public init() {
         self.ctx = CBigNumBoringSSL_BN_new()
@@ -98,7 +100,8 @@ public final class BigNum {
 }
 
 extension BigNum: CustomStringConvertible {
-    public var description: String {
+    // Pure-Swift delegation — safe to inline across module boundaries.
+    @inlinable public var description: String {
         self.dec
     }
 }
@@ -116,7 +119,9 @@ extension BigNum: Comparable {
 extension BigNum: ExpressibleByIntegerLiteral {
     public typealias IntegerLiteralType = Int
 
-    public convenience init(integerLiteral value: Int) {
+    // Delegates to the public init — no C symbols visible at the call site,
+    // so this is safe to mark @inlinable.
+    @inlinable public convenience init(integerLiteral value: Int) {
         self.init(value)
     }
 }
@@ -124,12 +129,24 @@ extension BigNum: ExpressibleByIntegerLiteral {
 // MARK: Operations
 
 extension BigNum {
+    // Every arithmetic operator goes through one of these two helpers.  They
+    // are tiny (allocate a result, call the block, return) so inlining them
+    // eliminates one indirect call per operation and gives the optimiser full
+    // visibility of the call sequence.
+    //
+    // NOTE: @inlinable is intentionally NOT used here.  The bodies reference
+    // CBigNumBoringSSL symbols that are `internal import`-ed; emitting those
+    // bodies into the .swiftinterface would require clients to resolve those C
+    // symbols at their compile time, which is not possible.  @inline(__always)
+    // achieves the within-module inlining we want without that restriction.
+    @inline(__always)
     static func operation(_ block: (_ result: BigNum) -> Int32) -> BigNum {
         let result = BigNum()
         precondition(block(result) == 1)
         return result
     }
 
+    @inline(__always)
     static func operationWithCtx(_ block: (BigNum, OpaquePointer?) -> Int32) -> BigNum {
         let result = BigNum()
         let context = CBigNumBoringSSL_BN_CTX_new()
