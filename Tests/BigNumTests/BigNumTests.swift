@@ -3,10 +3,16 @@ import Testing
 
 @testable import BigNum
 
+// The #expect macro from Swift Testing requires Copyable for expression arguments.
+// Since BigNum is ~Copyable, all comparisons must be pre-computed to a local Bool.
+
 struct BigNumTests {
     @Test func testConversion() {
-        #expect(BigNum(14_887_387_467_384) == BigNum("14887387467384"))
-        #expect(BigNum("92") == BigNum(hex: "5c"))
+        // BigNum("...") and BigNum(hex:) return BigNum? – force-unwrap known-good literals.
+        let a = BigNum(14_887_387_467_384) == BigNum("14887387467384")!
+        #expect(a)
+        let b = BigNum("92")! == BigNum(hex: "5c")!
+        #expect(b)
     }
 
     @Test func testDataConversion() {
@@ -15,82 +21,96 @@ struct BigNumTests {
         let bytes = number.bytes
         let hex = number.hex
         let dec = number.dec
-        #expect(BigNum(14_887_387_467_384) == BigNum("14887387467384"))
-        #expect(BigNum("92") == BigNum(hex: "5c"))
-        #expect(BigNum(bytes: data) == number)
-        #expect(BigNum(bytes: bytes) == number)
-        #expect(BigNum(hex: hex) == number)
-        #expect(BigNum(dec) == number)
+        let r1 = BigNum(14_887_387_467_384) == BigNum("14887387467384")!
+        #expect(r1)
+        let r2 = BigNum("92")! == BigNum(hex: "5c")!
+        #expect(r2)
+        let r3 = BigNum(bytes: data) == number
+        #expect(r3)
+        let r4 = BigNum(bytes: bytes) == number
+        #expect(r4)
+        let r5 = BigNum(hex: hex)! == number
+        #expect(r5)
+        let r6 = BigNum(dec)! == number
+        #expect(r6)
     }
 
     @Test func testBasic() {
         let a = BigNum(13)
         let b = BigNum(105)
         let c = a + b
-        #expect(c == 118)
+        let r = c == BigNum(118)
+        #expect(r)
     }
 
     @Test func testAdd() {
         var a = BigNum(132_435_353_453)
         let b = BigNum(23_453_532_535)
         let c = a + b
-        #expect(c == BigNum(132_435_353_453 + 23_453_532_535))
-
+        let r1 = c == BigNum(132_435_353_453 + 23_453_532_535)
+        #expect(r1)
         a += b
-        #expect(c == a)
+        let r2 = c == a
+        #expect(r2)
     }
 
     @Test func testSubtract() {
         var a = BigNum(132_435_987_897_453)
         let b = BigNum(23_453_532_535)
         let c = a - b
-        #expect(c == BigNum(132_435_987_897_453 - 23_453_532_535))
-
+        let r1 = c == BigNum(132_435_987_897_453 - 23_453_532_535)
+        #expect(r1)
         a -= b
-        #expect(c == a)
+        let r2 = c == a
+        #expect(r2)
     }
 
     @Test func testMultiple() {
         var a = BigNum(45)
         let b = BigNum(23_453_532_535)
         let c = a * b
-        #expect(c == BigNum(45 * 23_453_532_535))
-
+        let r1 = c == BigNum(45 * 23_453_532_535)
+        #expect(r1)
         a *= b
-        #expect(c == a)
+        let r2 = c == a
+        #expect(r2)
     }
 
     @Test func testDivide() {
         var a = BigNum(487_380_435_867_034_585)
         let b = BigNum(23_453_532_535)
         let c = a / b
-        #expect(c == BigNum(487_380_435_867_034_585 / 23_453_532_535))
-
+        let r1 = c == BigNum(487_380_435_867_034_585 / 23_453_532_535)
+        #expect(r1)
         a /= b
-        #expect(c == a)
+        let r2 = c == a
+        #expect(r2)
     }
 
     @Test func testModulus() {
         var a = BigNum(487_380_435_867_034_585)
         let b = BigNum(23_453_532_535)
         let c = a % b
-        #expect(c == BigNum(487_380_435_867_034_585 % 23_453_532_535))
-
+        let r1 = c == BigNum(487_380_435_867_034_585 % 23_453_532_535)
+        #expect(r1)
         a %= b
-        #expect(c == a)
+        let r2 = c == a
+        #expect(r2)
     }
 
     @Test func testSquare() {
         let a = BigNum(487_034_585)
         let c = a * a
-        #expect(c == BigNum(487_034_585 * 487_034_585))
+        let r = c == BigNum(487_034_585 * 487_034_585)
+        #expect(r)
     }
 
     @Test func testPower() {
         let a = BigNum(45)
         let b = BigNum(6)
         let c = a.power(b)
-        #expect(c == BigNum(Int(pow(Double(45), Double(6)))))
+        let r = c == BigNum(Int(pow(Double(45), Double(6))))
+        #expect(r)
     }
 
     @Test func testModAdd() {
@@ -98,7 +118,8 @@ struct BigNumTests {
         let a = BigNum(28_868_624_873)
         let b = BigNum(28_333_868_624_873)
         let c = a.add(b, modulus: N)
-        #expect(c == BigNum((28_868_624_873 + 28_333_868_624_873) % 87_178_291_199))
+        let r = c == BigNum((28_868_624_873 + 28_333_868_624_873) % 87_178_291_199)
+        #expect(r)
     }
 
     @Test func testModSubtract() {
@@ -106,7 +127,8 @@ struct BigNumTests {
         let a = BigNum(28_333_868_624_873)
         let b = BigNum(28_868_624_873)
         let c = a.sub(b, modulus: N)
-        #expect(c == BigNum((28_333_868_624_873 - 28_868_624_873) % 87_178_291_199))
+        let r = c == BigNum((28_333_868_624_873 - 28_868_624_873) % 87_178_291_199)
+        #expect(r)
     }
 
     @Test func testModMultiple() {
@@ -114,14 +136,16 @@ struct BigNumTests {
         let a = BigNum(67)
         let b = BigNum(28_876_783_243)
         let c = a.mul(b, modulus: N)
-        #expect(c == BigNum((67 * 28_876_783_243) % 87_178_291_199))
+        let r = c == BigNum((67 * 28_876_783_243) % 87_178_291_199)
+        #expect(r)
     }
 
     @Test func testModSquare() {
         let N = BigNum(2_971_215_073)
         let a = BigNum(67647)
         let c = a.sqr(modulus: N)
-        #expect(c == BigNum((67647 * 67647) % 2_971_215_073))
+        let r = c == BigNum((67647 * 67647) % 2_971_215_073)
+        #expect(r)
     }
 
     @Test func testModPower() {
@@ -129,7 +153,8 @@ struct BigNumTests {
         let a = BigNum(67)
         let b = BigNum(7)
         let c = a.power(b, modulus: N)
-        #expect(c == BigNum(Int(pow(Double(67), Double(7))) % 433_494_437))
+        let r = c == BigNum(Int(pow(Double(67), Double(7))) % 433_494_437)
+        #expect(r)
     }
 
     @Test func testLargeModPower() {
@@ -178,42 +203,50 @@ struct BigNumTests {
         )!
         let g = BigNum(2)
         let A = g.power(a, modulus: N)
-        #expect(A == expectedResult)
+        let r = A == expectedResult
+        #expect(r)
     }
 
     @Test func testGCD() {
         let a = BigNum(333)
         let b = BigNum(27)
         let gcd = BigNum.gcd(a, b)
-        #expect(gcd == BigNum(9))
+        let r = gcd == BigNum(9)
+        #expect(r)
     }
 
     @Test func testLeftShift() {
         let a = BigNum(hex: "87237634a5fed7")!
         let b = a << 4
-        #expect(b == BigNum(hex: "87237634a5fed70")!)
+        let r = b == BigNum(hex: "87237634a5fed70")!
+        #expect(r)
     }
 
     @Test func testRightShift() {
         let a = BigNum(hex: "87237634aed78dc90a5fed7")!
         let b = a >> 12
-        #expect(b == BigNum(hex: "87237634aed78dc90a5f")!)
+        let r = b == BigNum(hex: "87237634aed78dc90a5f")!
+        #expect(r)
     }
 
     @Test func testNotHex() {
         let a = BigNum(hex: "sdf876sjhk")
-        #expect(a == nil)
+        let isNil = (a == nil)
+        #expect(isNil)
     }
 
     @Test func testRandom() {
         let r = BigNum.random(bits: 96, top: .topBitSetToOne)
-        #expect(r.numBits() == 96)
-        #expect(r.isBitSet(95))
+        let bits = r.numBits()
+        #expect(bits == 96)
+        let bitSet = r.isBitSet(95)
+        #expect(bitSet)
     }
 
     @Test func testPrime() {
         let r = BigNum.generatePrime(bitSize: 128, safe: false)
-        #expect(r.isPrime(numChecks: 128))
+        let prime = r.isPrime(numChecks: 128)
+        #expect(prime)
     }
 
     @Test func testFactorial() {
@@ -222,7 +255,10 @@ struct BigNumTests {
             factorial = factorial * BigNum(i)
         }
         for i in 1..<100 {
-            #expect(BigNum.gcd(BigNum(i), factorial) == BigNum(i))
+            let gcd = BigNum.gcd(BigNum(i), factorial)
+            let expected = BigNum(i)
+            let r = gcd == expected
+            #expect(r)
         }
     }
 }
