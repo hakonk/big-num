@@ -12,8 +12,13 @@ public import FoundationEssentials
 public import Foundation
 #endif
 
-/// Swift wrapper class for BIGNUM functions in BoringSSL library
-public final class BigNum {
+/// Swift wrapper struct for BIGNUM functions in BoringSSL library.
+///
+/// Note: `BigNum` is `~Copyable` (noncopyable). It cannot conform to `Equatable`,
+/// `Comparable`, `CustomStringConvertible`, or `ExpressibleByIntegerLiteral` because
+/// those stdlib protocols implicitly require `Copyable` as of Swift 6.2. Free-function
+/// operators are provided instead.
+public struct BigNum: ~Copyable {
     internal let ctx: UnsafeMutablePointer<BIGNUM>?
 
     public init() {
@@ -95,42 +100,57 @@ public final class BigNum {
         defer { CBigNumBoringSSL_OPENSSL_free(cString) }
         return String(cString: cString)
     }
+
+    public var description: String { dec }
 }
 
-extension BigNum: CustomStringConvertible {
-    public var description: String {
-        self.dec
-    }
+// MARK: - Comparison operators
+// ~Copyable types cannot yet conform to Equatable/Comparable (those protocols still
+// implicitly require Copyable in Swift 6.2). Free-function operators are provided instead.
+
+public func == (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == 0
 }
 
-extension BigNum: Comparable {
-    public static func == (lhs: BigNum, rhs: BigNum) -> Bool {
-        CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == 0
-    }
-
-    public static func < (lhs: BigNum, rhs: BigNum) -> Bool {
-        CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == -1
-    }
+public func != (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) != 0
 }
 
-extension BigNum: ExpressibleByIntegerLiteral {
-    public typealias IntegerLiteralType = Int
-
-    public convenience init(integerLiteral value: Int) {
-        self.init(value)
-    }
+public func < (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == -1
 }
 
-// MARK: Operations
+public func > (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == 1
+}
+
+public func <= (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) <= 0
+}
+
+public func >= (lhs: borrowing BigNum, rhs: borrowing BigNum) -> Bool {
+    CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) >= 0
+}
+
+/// Convenience comparison with a Swift Int (avoids callers needing to wrap in BigNum).
+public func == (lhs: borrowing BigNum, rhs: Int) -> Bool {
+    lhs == BigNum(rhs)
+}
+
+public func != (lhs: borrowing BigNum, rhs: Int) -> Bool {
+    lhs != BigNum(rhs)
+}
+
+// MARK: - Arithmetic helpers
 
 extension BigNum {
-    static func operation(_ block: (_ result: BigNum) -> Int32) -> BigNum {
+    static func operation(_ block: (_ result: borrowing BigNum) -> Int32) -> BigNum {
         let result = BigNum()
         precondition(block(result) == 1)
         return result
     }
 
-    static func operationWithCtx(_ block: (BigNum, OpaquePointer?) -> Int32) -> BigNum {
+    static func operationWithCtx(_ block: (borrowing BigNum, OpaquePointer?) -> Int32) -> BigNum {
         let result = BigNum()
         let context = CBigNumBoringSSL_BN_CTX_new()
         precondition(block(result, context) == 1)
@@ -139,97 +159,96 @@ extension BigNum {
     }
 }
 
-public func + (lhs: BigNum, rhs: BigNum) -> BigNum {
+// MARK: - Binary operators
+
+public func + (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     BigNum.operation {
         CBigNumBoringSSL_BN_add($0.ctx, lhs.ctx, rhs.ctx)
     }
 }
 
-public func - (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func - (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     BigNum.operation {
         CBigNumBoringSSL_BN_sub($0.ctx, lhs.ctx, rhs.ctx)
     }
 }
 
-public func * (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func * (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_mul($0.ctx, lhs.ctx, rhs.ctx, $1)
     }
 }
 
 /// Returns lhs / rhs, rounded to zero.
-public func / (lhs: BigNum, rhs: BigNum) -> BigNum {
+public func / (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_div($0.ctx, nil, lhs.ctx, rhs.ctx, $1)
     }
 }
 
-/// Returns lhs / rhs, rounded to zero.
-public func % (lhs: BigNum, rhs: BigNum) -> BigNum {
+/// Returns lhs % rhs.
+public func % (lhs: borrowing BigNum, rhs: borrowing BigNum) -> BigNum {
     BigNum.operationWithCtx {
         CBigNumBoringSSL_BN_div(nil, $0.ctx, lhs.ctx, rhs.ctx, $1)
     }
 }
 
 /// right shift
-public func >> (lhs: BigNum, shift: Int32) -> BigNum {
+public func >> (lhs: borrowing BigNum, shift: Int32) -> BigNum {
     BigNum.operation {
         CBigNumBoringSSL_BN_rshift($0.ctx, lhs.ctx, shift)
     }
 }
 
 /// left shift
-public func << (lhs: BigNum, shift: Int32) -> BigNum {
+public func << (lhs: borrowing BigNum, shift: Int32) -> BigNum {
     BigNum.operation {
         CBigNumBoringSSL_BN_lshift($0.ctx, lhs.ctx, shift)
     }
 }
 
-// MARK: Member Operations
+// MARK: - Compound assignment operators
 
 extension BigNum {
-    public static func += (lhs: inout BigNum, rhs: BigNum) {
+    public static func += (lhs: inout BigNum, rhs: borrowing BigNum) {
+        let lhsCtx = lhs.ctx
         lhs = BigNum.operation {
-            CBigNumBoringSSL_BN_add($0.ctx, lhs.ctx, rhs.ctx)
+            CBigNumBoringSSL_BN_add($0.ctx, lhsCtx, rhs.ctx)
         }
     }
 
-    public static func -= (lhs: inout BigNum, rhs: BigNum) {
+    public static func -= (lhs: inout BigNum, rhs: borrowing BigNum) {
+        let lhsCtx = lhs.ctx
         lhs = BigNum.operation {
-            CBigNumBoringSSL_BN_sub($0.ctx, lhs.ctx, rhs.ctx)
+            CBigNumBoringSSL_BN_sub($0.ctx, lhsCtx, rhs.ctx)
         }
     }
 
-    public static func *= (lhs: inout BigNum, rhs: BigNum) {
+    public static func *= (lhs: inout BigNum, rhs: borrowing BigNum) {
+        let lhsCtx = lhs.ctx
         lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mul($0.ctx, lhs.ctx, rhs.ctx, $1)
+            CBigNumBoringSSL_BN_mul($0.ctx, lhsCtx, rhs.ctx, $1)
         }
     }
 
-    public static func /= (lhs: inout BigNum, rhs: BigNum) {
+    public static func /= (lhs: inout BigNum, rhs: borrowing BigNum) {
+        let lhsCtx = lhs.ctx
         lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_div(
-                $0.ctx,
-                nil,
-                lhs.ctx,
-                rhs.ctx,
-                $1
-            )
+            CBigNumBoringSSL_BN_div($0.ctx, nil, lhsCtx, rhs.ctx, $1)
         }
     }
 
-    public static func %= (lhs: inout BigNum, rhs: BigNum) {
+    public static func %= (lhs: inout BigNum, rhs: borrowing BigNum) {
+        let lhsCtx = lhs.ctx
         lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_div(
-                nil,
-                $0.ctx,
-                lhs.ctx,
-                rhs.ctx,
-                $1
-            )
+            CBigNumBoringSSL_BN_div(nil, $0.ctx, lhsCtx, rhs.ctx, $1)
         }
     }
+}
 
+// MARK: - Member operations
+
+extension BigNum {
     /// Returns: (self ** 2)
     public func sqr() -> BigNum {
         BigNum.operationWithCtx {
@@ -238,14 +257,14 @@ extension BigNum {
     }
 
     /// Returns: (self ** p)
-    public func power(_ p: BigNum) -> BigNum {
+    public func power(_ p: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_exp($0.ctx, self.ctx, p.ctx, $1)
         }
     }
 
     /// Returns: (self + b) % N
-    public func add(_ b: BigNum, modulus: BigNum) -> BigNum {
+    public func add(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_add(
                 $0.ctx,
@@ -258,7 +277,7 @@ extension BigNum {
     }
 
     /// Returns: (a - b) % N
-    public func sub(_ b: BigNum, modulus: BigNum) -> BigNum {
+    public func sub(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_sub(
                 $0.ctx,
@@ -271,7 +290,7 @@ extension BigNum {
     }
 
     /// Returns: (a * b) % N
-    public func mul(_ b: BigNum, modulus: BigNum) -> BigNum {
+    public func mul(_ b: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_mul(
                 $0.ctx,
@@ -284,7 +303,7 @@ extension BigNum {
     }
 
     /// Returns: (a ** 2) % N
-    public func sqr(modulus: BigNum) -> BigNum {
+    public func sqr(modulus: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_sqr(
                 $0.ctx,
@@ -296,7 +315,7 @@ extension BigNum {
     }
 
     /// Returns: (a ** p) % N
-    public func power(_ p: BigNum, modulus: BigNum) -> BigNum {
+    public func power(_ p: borrowing BigNum, modulus: borrowing BigNum) -> BigNum {
         BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_mod_exp(
                 $0.ctx,
@@ -309,8 +328,8 @@ extension BigNum {
     }
 
     /// Return greatest common denominator
-    public static func gcd(_ first: BigNum, _ second: BigNum) -> BigNum {
-        self.operationWithCtx {
+    public static func gcd(_ first: borrowing BigNum, _ second: borrowing BigNum) -> BigNum {
+        BigNum.operationWithCtx {
             CBigNumBoringSSL_BN_gcd(
                 $0.ctx,
                 first.ctx,
@@ -320,7 +339,7 @@ extension BigNum {
         }
     }
 
-    /// Bitwise operations
+    // MARK: Bitwise operations
 
     public func setBit(_ bit: Int32) {
         CBigNumBoringSSL_BN_set_bit(self.ctx, bit)
@@ -335,15 +354,14 @@ extension BigNum {
     }
 
     public func isBitSet(_ bit: Int32) -> Bool {
-        let set = CBigNumBoringSSL_BN_is_bit_set(self.ctx, bit)
-        return set == 1 ? true : false
+        CBigNumBoringSSL_BN_is_bit_set(self.ctx, bit) == 1
     }
 
     public func numBits() -> UInt32 {
         CBigNumBoringSSL_BN_num_bits(self.ctx)
     }
 
-    /// random number generators
+    // MARK: Random number generators
 
     public enum Top: Int32 {
         case any = -1
@@ -351,62 +369,68 @@ extension BigNum {
         case topTwoBitsSetToOne = 1
     }
 
-    /// return cryptographically strong random number of maximum size defined in bits. random needs seeding prior to be called
+    /// Return cryptographically strong random number of maximum size defined in bits.
     public static func random(bits: Int32, top: Top = .any, odd: Bool = false) -> BigNum {
         self.operation {
             CBigNumBoringSSL_BN_rand($0.ctx, bits, top.rawValue, odd ? 1 : 0)
         }
     }
 
-    /// return pseudo random number of maximum size defined in bits.
+    /// Return pseudo random number of maximum size defined in bits.
     public static func psuedo_random(bits: Int32, top: Top = .any, odd: Bool = false) -> BigNum {
         self.operation {
             CBigNumBoringSSL_BN_pseudo_rand($0.ctx, bits, top.rawValue, odd ? 1 : 0)
         }
     }
 
-    /// return cryptographically strong random number in range (0...max-1). random needs seeding prior to be called
-    public static func random(max: BigNum) -> BigNum {
-        self.operation {
+    /// Return cryptographically strong random number in range (0...max-1).
+    public static func random(max: borrowing BigNum) -> BigNum {
+        BigNum.operation {
             CBigNumBoringSSL_BN_rand_range($0.ctx, max.ctx)
         }
     }
 
-    /// return pseudo random number in range (0..<max)
-    public static func psuedo_random(max: BigNum) -> BigNum {
-        self.operation {
+    /// Return pseudo random number in range (0..<max).
+    public static func psuedo_random(max: borrowing BigNum) -> BigNum {
+        BigNum.operation {
             CBigNumBoringSSL_BN_pseudo_rand_range($0.ctx, max.ctx)
         }
     }
 
-    /// prime number generator
+    // MARK: Prime number generation / checking
+
+    /// Return a random prime with the given bit size.
+    public static func generatePrime(bitSize: Int32, safe: Bool) -> BigNum {
+        self.operation {
+            CBigNumBoringSSL_BN_generate_prime_ex(
+                $0.ctx, bitSize, safe ? 1 : 0, nil, nil, nil
+            )
+        }
+    }
+
+    /// Return a random prime with the given bit size, constrained by add and remainder.
     public static func generatePrime(
         bitSize: Int32,
         safe: Bool,
-        add: BigNum? = nil,
-        remainder: BigNum? = nil
+        add: borrowing BigNum,
+        remainder: borrowing BigNum
     ) -> BigNum {
-        self.operation {
+        BigNum.operation {
             CBigNumBoringSSL_BN_generate_prime_ex(
                 $0.ctx,
                 bitSize,
                 safe ? 1 : 0,
-                add?.ctx,
-                remainder?.ctx,
+                add.ctx,
+                remainder.ctx,
                 nil
             )
         }
     }
 
-    /// prime number generator
+    /// Return whether `self` is (probably) prime.
     public func isPrime(numChecks: Int32) -> Bool {
         let context = CBigNumBoringSSL_BN_CTX_new()
-        defer {
-            CBigNumBoringSSL_BN_CTX_free(context)
-        }
+        defer { CBigNumBoringSSL_BN_CTX_free(context) }
         return CBigNumBoringSSL_BN_is_prime_ex(self.ctx, numChecks, context, nil) == 1
     }
 }
-
-/// TODO: Remove this when we move to the next major version
-extension BigNum: @unchecked Sendable {}
