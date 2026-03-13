@@ -62,7 +62,7 @@ function namespace_inlines {
 
     for s in $STACKS; do
         for f in "${STACK_FUNCTIONS[@]}"; do
-            echo "#define sk_${s}_${f} BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, sk_${s}_${f})" >> "$1/include/openssl/boringssl_prefix_symbols.h"
+            echo "#define sk_${s}_${f} BORINGSSL_ADD_PREFIX(sk_${s}_${f})" >> "$1/include/openssl/prefix_symbols.h"
         done
     done
 
@@ -72,80 +72,33 @@ function namespace_inlines {
 
     for l in $LHASHES; do
         for f in "${LHASH_FUNCTIONS[@]}"; do
-            echo "#define lh_${l}_${f} BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, lh_${l}_${f})" >> "$1/include/openssl/boringssl_prefix_symbols.h"
+            echo "#define lh_${l}_${f} BORINGSSL_ADD_PREFIX(lh_${l}_${f})" >> "$1/include/openssl/prefix_symbols.h"
         done
     done
 }
 
 
-# This function handles mangling the symbols in BoringSSL.
+# Modern BoringSSL ships pre-generated prefix symbol headers (prefix_symbols.h,
+# prefix_symbols_internal_c.h, prefix_symbols_internal_S.h). We just need to
+# define BORINGSSL_PREFIX and let base.h pull them in automatically.
 function mangle_symbols {
-    echo "GENERATING mangled symbol list"
-    (
-        # We need a .a: may as well get SwiftPM to give it to us.
-        # Temporarily enable the product we need.
-        $sed -i -e 's/MANGLE_START/MANGLE_START*\//' -e 's/MANGLE_END/\/*MANGLE_END/' "${HERE}/Package.swift"
-
-        export GOPATH="${TMPDIR}"
-
-        # Build for macOS (Intel and Apple Silicon).
-        swift build --triple "x86_64-apple-macosx" --product CBigNumBoringSSL
-        swift build --triple "arm64-apple-macosx" --product CBigNumBoringSSL
-        (
-            cd "${SRCROOT}"
-            go mod tidy -modcacherw
-            go run "util/read_symbols.go" -out "${TMPDIR}/symbols-macOS-intel.txt" "${HERE}/.build/x86_64-apple-macosx/debug/libCBigNumBoringSSL.a"
-            go run "util/read_symbols.go" -out "${TMPDIR}/symbols-macOS-as.txt" "${HERE}/.build/arm64-apple-macosx/debug/libCBigNumBoringSSL.a"
-        )
-
-        # Symbol names are identical across platforms, so macOS symbols suffice
-        # for the prefix mangling.
-        cat "${TMPDIR}"/symbols-*.txt | sort | uniq | grep -v "CBigNumBoringSSL" > "${TMPDIR}/symbols.txt"
-
-        # Use this as the input to the mangle.
-        (
-            cd "${SRCROOT}"
-            go run "util/make_prefix_headers.go" -out "${HERE}/${DSTROOT}/include/openssl" "${TMPDIR}/symbols.txt"
-        )
-
-        # Remove the product, as we no longer need it.
-        $sed -i -e 's/MANGLE_START\*\//MANGLE_START/' -e 's/\/\*MANGLE_END/MANGLE_END/' "${HERE}/Package.swift"
-    )
-
-    # Now remove any weird symbols that got in and would emit warnings.
-    $sed -i -e '/#define .*\..*/d' "${DSTROOT}"/include/openssl/boringssl_prefix_symbols*.h
-
-    # Now edit the headers again to add the symbol mangling.
     echo "ADDING symbol mangling"
-    perl -pi -e '$_ .= qq(\n#define BORINGSSL_PREFIX CBigNumBoringSSL\n) if /#define OPENSSL_HEADER_BASE_H/' "$DSTROOT/include/openssl/base.h"
 
+    # Define BORINGSSL_PREFIX in base.h so prefix_symbols.h gets included.
+    # Also undef __PRAGMA_REDEFINE_EXTNAME to force the #define path so that
+    # prefixed symbol names are visible at the source level for Swift interop.
+    perl -pi -e '$_ .= qq(\n#define BORINGSSL_PREFIX CBigNumBoringSSL\n) if /#define OPENSSL_HEADER_BASE_H/' "$DSTROOT/include/openssl/base.h"
+    $sed -i '/^#if defined(BORINGSSL_PREFIX)/i #undef __PRAGMA_REDEFINE_EXTNAME' "$DSTROOT/include/openssl/base.h"
+
+    # Add BORINGSSL_PREFIX to all assembly files.
     # shellcheck disable=SC2044
     for assembly_file in $(find "$DSTROOT" -name "*.S")
     do
         $sed -i '1 i #define BORINGSSL_PREFIX CBigNumBoringSSL' "$assembly_file"
     done
+
+    # Namespace inline STACK_OF and LHASH_OF functions.
     namespace_inlines "$DSTROOT"
-}
-
-function mangle_cpp_structures {
-    echo "MANGLING C++ structures"
-    (
-        # We need a .a: may as well get SwiftPM to give it to us.
-        # Temporarily enable the product we need.
-        $sed -i -e 's/MANGLE_START/MANGLE_START*\//' -e 's/MANGLE_END/\/*MANGLE_END/' "${HERE}/Package.swift"
-
-        # Build for macOS.
-        swift build --product CBigNumBoringSSL
-
-        structures=$(nm -gUj "$(swift build --show-bin-path)/libCBigNumBoringSSL.a" | c++filt | grep "::" | grep -v -e "CBigNumBoringSSL" -e "swift" | cut -d : -f1 | grep -v "std$" | $sed -E -e 's/([^<>]*)(<[^<>]*>)?/\1/' | sort | uniq)
-
-        for struct in ${structures}; do
-            echo "#define ${struct} BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, ${struct})" >> "${DSTROOT}/include/CBigNumBoringSSL_boringssl_prefix_symbols.h"
-        done
-
-        # Remove the product, as we no longer need it.
-        $sed -i -e 's/MANGLE_START\*\//MANGLE_START/' -e 's/\/\*MANGLE_END/MANGLE_END/' "${HERE}/Package.swift"
-    )
 }
 
 case "$(uname -s)" in
@@ -189,14 +142,6 @@ echo "OBTAINING submodules"
 (
     cd "$SRCROOT"
     git submodule update --init
-)
-
-echo "GENERATING assembly helpers"
-(
-    cd "$SRCROOT"
-    cd ..
-    mkdir -p "${SRCROOT}/crypto/third_party/sike/asm"
-    python3 "${HERE}/scripts/build-asm.py"
 )
 
 PATTERNS=(
@@ -257,8 +202,8 @@ echo "DISABLING assembly on x86 Windows"
     $sed -i "/#define OPENSSL_HEADER_BASE_H/a#if defined(_WIN32) && (defined(__x86_64) || defined(_M_AMD64) || defined(_M_X64) || defined(__x86) || defined(__i386) || defined(__i386__) || defined(_M_IX86))\n#define OPENSSL_NO_ASM\n#endif" "include/openssl/base.h"
 )
 
-echo "DELETING crypto/fipsmodule/bcm.cc"
-rm -f $DSTROOT/crypto/fipsmodule/bcm.cc
+# Note: crypto/fipsmodule/bcm.cc is a unity build file that #includes all the
+# .cc.inc files. It must be kept for the build to work.
 
 mangle_symbols
 
@@ -280,9 +225,9 @@ echo "RENAMING header files"
     mv include/openssl/* include/
     rmdir "include/openssl"
 
-    # Now change the imports from "<openssl/X> to "<CBigNumBoringSSL_X>", apply the same prefix to the 'boringssl_prefix_symbols' headers.
+    # Now change the imports from "<openssl/X> to "<CBigNumBoringSSL_X>", apply the same prefix to the prefix_symbols headers.
     # shellcheck disable=SC2038
-    find . -name "*.[ch]" -or -name "*.cc" -or -name "*.S" -or -name "*.c.inc" -or -name "*.cc.inc" | xargs $sed -i -e 's+include <openssl/\([[:alpha:]/]*/\)\{0,1\}+include <\1CBigNumBoringSSL_+' -e 's+include <boringssl_prefix_symbols+include <CBigNumBoringSSL_boringssl_prefix_symbols+' -e 's+include "openssl/\([[:alpha:]/]*/\)\{0,1\}+include "\1CBigNumBoringSSL_+'
+    find . -name "*.[ch]" -or -name "*.cc" -or -name "*.S" -or -name "*.c.inc" -or -name "*.cc.inc" | xargs $sed -i -e 's+include <openssl/\([[:alpha:]/]*/\)\{0,1\}+include <\1CBigNumBoringSSL_+' -e 's+include <prefix_symbols+include <CBigNumBoringSSL_prefix_symbols+' -e 's+include "openssl/\([[:alpha:]/]*/\)\{0,1\}+include "\1CBigNumBoringSSL_+'
 
     # Okay now we need to rename the headers adding the prefix "CBigNumBoringSSL_".
     pushd include
@@ -299,8 +244,9 @@ echo "RENAMING header files"
 )
 
 echo "PATCHING BoringSSL"
-git apply "${HERE}/scripts/patch-1-inttypes.patch"
-git apply "${HERE}/scripts/patch-2-arm-arch.patch"
+# Note: patch-1-inttypes.patch is no longer needed as inttypes.h works fine
+# with modern Swift toolchains. patch-2-arm-arch.patch is no longer needed as
+# modern BoringSSL's arm_arch.h has been simplified.
 
 # We need to avoid having the stack be executable. BoringSSL does this in its build system, but we can't.
 echo "PROTECTING against executable stacks"
@@ -309,8 +255,6 @@ echo "PROTECTING against executable stacks"
     # shellcheck disable=SC2038
     find . -name "*.S" | xargs $sed -i '$ a #if defined(__linux__) && defined(__ELF__)\n.section .note.GNU-stack,"",%progbits\n#endif\n'
 )
-
-mangle_cpp_structures
 
 # We need BoringSSL to be modularised
 echo "MODULARISING BoringSSL"
