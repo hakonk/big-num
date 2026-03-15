@@ -13,15 +13,18 @@
 // limitations under the License.
 
 #include <CBigNumBoringSSL_crypto.h>
-#include <CBigNumBoringSSL_ec.h>
-#include <CBigNumBoringSSL_ec_key.h>
 #include <CBigNumBoringSSL_err.h>
-#include <CBigNumBoringSSL_evp.h>
 
-#include "../../evp/internal.h"
 #include "../../internal.h"
 #include "../../mem_internal.h"
 #include "internal.h"
+
+#if defined(BORINGSSL_FIPS)
+#include <CBigNumBoringSSL_ec.h>
+#include <CBigNumBoringSSL_ec_key.h>
+#include <CBigNumBoringSSL_evp.h>
+#include "../../evp/internal.h"
+#endif
 
 
 using namespace bssl;
