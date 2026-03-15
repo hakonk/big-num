@@ -145,23 +145,63 @@ echo "OBTAINING submodules"
 )
 
 PATTERNS=(
+# Public headers
 'include/openssl/*.h'
+
+# Top-level crypto infrastructure
 'crypto/*.h'
 'crypto/*.cc'
-'crypto/*/*.h'
-'crypto/*/*.cc'
-'crypto/*/*.S'
-'crypto/*/*/*.h'
-'crypto/*/*/*.cc.inc'
-'crypto/*/*/*.inc'
-'crypto/*/*/*.S'
-'crypto/*/*/*/*.cc.inc'
-'gen/crypto/*.cc'
-'gen/crypto/*.S'
-'gen/bcm/*.S'
-'third_party/fiat/*.h'
-'third_party/fiat/asm/*.S'
-'third_party/fiat/*.c.inc'
+
+# BN (bignum) — the core module BigNum uses
+'crypto/bn/*.cc'
+
+# Supporting modules needed by BN
+'crypto/asn1/internal.h'          # needed by bytestring/cbs.cc
+'crypto/asn1/posix_time.cc'       # needed by bytestring/cbs.cc (OPENSSL_gmtime_adj)
+'crypto/bio/*.h'
+'crypto/bio/*.cc'                 # needed by bn/convert.cc (BN_print)
+'crypto/buf/*.cc'                 # needed by bio
+'crypto/bytestring/*.h'
+'crypto/bytestring/*.cc'          # needed by bn/convert.cc (CBB for BN_bn2dec)
+'crypto/err/*.h'
+'crypto/err/*.cc'                 # error handling
+'crypto/rand/*.h'
+'crypto/rand/*.cc'                # needed by BN_rand, BN_generate_prime
+'crypto/stack/*.cc'               # needed by ex_data
+
+# FIPS module unity build and its kept submodules
+'crypto/fipsmodule/bcm_interface.h'
+'crypto/fipsmodule/bcm.cc'
+'crypto/fipsmodule/delocate.h'
+'crypto/fipsmodule/fips_shared_support.cc'
+'crypto/fipsmodule/bn/*.h'
+'crypto/fipsmodule/bn/*.cc.inc'
+'crypto/fipsmodule/bn/asm/*.cc.inc'
+'crypto/fipsmodule/aes/*.h'       # needed by CTR-DRBG (used by rand)
+'crypto/fipsmodule/aes/*.cc.inc'
+'crypto/fipsmodule/rand/*.h'
+'crypto/fipsmodule/rand/*.cc.inc'
+'crypto/fipsmodule/entropy/*.h'
+'crypto/fipsmodule/entropy/*.cc.inc'
+'crypto/fipsmodule/service_indicator/*.h'
+'crypto/fipsmodule/service_indicator/*.cc.inc'
+
+# Generated sources
+'gen/crypto/err_data.cc'
+
+# BN montgomery multiply assembly
+'gen/bcm/bn-*'
+'gen/bcm/armv4-mont-*'
+'gen/bcm/armv8-mont-*'
+'gen/bcm/x86-mont-*'
+'gen/bcm/x86_64-mont-*'
+'gen/bcm/x86_64-mont5-*'
+
+# AES assembly (needed by CTR-DRBG) — exclude GCM variants
+'gen/bcm/aesni-x86*'
+'gen/bcm/aesv8-armv*'
+'gen/bcm/bsaes-*'
+'gen/bcm/vpaes-*'
 )
 
 EXCLUDES=(
@@ -189,6 +229,10 @@ do
   find $DSTROOT -d -name "$exclude" -exec rm -rf {} \;
 done
 
+# bn_asn1.cc is not needed — BigNum doesn't use BN_marshal_asn1/BN_parse_asn1
+echo "REMOVING unused BN ASN1 support"
+rm -f "$DSTROOT/crypto/bn/bn_asn1.cc"
+
 echo "REMOVING libssl"
 (
     cd "$DSTROOT"
@@ -202,8 +246,93 @@ echo "DISABLING assembly on x86 Windows"
     $sed -i "/#define OPENSSL_HEADER_BASE_H/a#if defined(_WIN32) && (defined(__x86_64) || defined(_M_AMD64) || defined(_M_X64) || defined(__x86) || defined(__i386) || defined(__i386__) || defined(_M_IX86))\n#define OPENSSL_NO_ASM\n#endif" "include/openssl/base.h"
 )
 
-# Note: crypto/fipsmodule/bcm.cc is a unity build file that #includes all the
-# .cc.inc files. It must be kept for the build to work.
+# Patch bcm.cc: strip it down to only BN + rand + AES + entropy + service_indicator.
+# The original includes all fipsmodule .cc.inc files; we only need the BN subset.
+echo "PATCHING bcm.cc to include only BN-related modules"
+cat > "$DSTROOT/crypto/fipsmodule/bcm.cc" << 'BCMEOF'
+// Copyright 2017 The BoringSSL Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE  // needed for syscall() on Linux.
+#endif
+
+#include <openssl/crypto.h>
+
+#include <stdlib.h>
+
+#include "../bcm_support.h"
+#include "../internal.h"
+#include "bcm_interface.h"
+
+// The .cc.inc files are not written as headers, but .cc files which we
+// currently need to combine together in the style of a unity or jumbo build.
+OPENSSL_CLANG_PRAGMA("clang diagnostic push")
+OPENSSL_CLANG_PRAGMA("clang diagnostic ignored \"-Wheader-hygiene\"")
+// BN (bignum) — the only module BigNum actually uses
+#include "bn/add.cc.inc"
+#include "bn/asm/x86_64-gcc.cc.inc"
+#include "bn/bn.cc.inc"
+#include "bn/bytes.cc.inc"
+#include "bn/cmp.cc.inc"
+#include "bn/ctx.cc.inc"
+#include "bn/div.cc.inc"
+#include "bn/div_extra.cc.inc"
+#include "bn/exponentiation.cc.inc"
+#include "bn/gcd.cc.inc"
+#include "bn/gcd_extra.cc.inc"
+#include "bn/generic.cc.inc"
+#include "bn/jacobi.cc.inc"
+#include "bn/montgomery.cc.inc"
+#include "bn/montgomery_inv.cc.inc"
+#include "bn/mul.cc.inc"
+#include "bn/prime.cc.inc"
+#include "bn/random.cc.inc"
+#include "bn/rsaz_exp.cc.inc"
+#include "bn/shift.cc.inc"
+#include "bn/sqrt.cc.inc"
+// Rand — needed by BN_rand, BN_generate_prime_ex
+#include "rand/ctrdrbg.cc.inc"
+#include "rand/rand.cc.inc"
+// Entropy — needed by rand
+#include "entropy/jitter.cc.inc"
+// AES — needed by CTR-DRBG
+#include "aes/aes.cc.inc"
+#include "aes/aes_nohw.cc.inc"
+// Service indicator — referenced by ctrdrbg
+#include "service_indicator/service_indicator.cc.inc"
+OPENSSL_CLANG_PRAGMA("clang diagnostic pop")
+BCMEOF
+
+# Patch service_indicator: move FIPS-only includes behind a FIPS guard
+# so we don't need evp/ and ec/ headers/sources.
+echo "PATCHING service_indicator.cc.inc for non-FIPS build"
+SI_FILE="$DSTROOT/crypto/fipsmodule/service_indicator/service_indicator.cc.inc"
+# Remove the unconditional includes for ec, ec_key, evp and evp/internal.h
+$sed -i '/#include <openssl\/ec\.h>/d' "$SI_FILE"
+$sed -i '/#include <openssl\/ec_key\.h>/d' "$SI_FILE"
+$sed -i '/#include <openssl\/evp\.h>/d' "$SI_FILE"
+$sed -i '/\.\.\/\.\.\/evp\/internal\.h/d' "$SI_FILE"
+# Re-add them inside a FIPS guard, just before "using namespace"
+$sed -i '/^using namespace bssl;/i \
+#if defined(BORINGSSL_FIPS)\
+#include <openssl/ec.h>\
+#include <openssl/ec_key.h>\
+#include <openssl/evp.h>\
+#include "../../evp/internal.h"\
+#endif\
+' "$SI_FILE"
 
 mangle_symbols
 
