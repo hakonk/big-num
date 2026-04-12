@@ -264,3 +264,66 @@ patch application, and finally the umbrella header + modulemap
 regeneration.
 
 Docker Desktop must be running for the Linux build phases.
+
+## Build environment
+
+The vendoring run described here was performed on the following machine.
+Anything newer in the same major line should work; older versions may not
+(the script assumes Swift 6.x triple names, `swift:6.3-noble` images, Go
+modules, Python 3 semantics, GNU `sed` extensions, and Xcode 26's iOS
+`-destination generic/platform=iOS` syntax).
+
+### Host
+- **macOS** 26.3.1 (build 25D771280a), Darwin 25.3.0, `arm64` (Apple Silicon).
+- **bash** 5.3.9 (`aarch64-apple-darwin25.1.0`). The header-rename loop uses
+  `shopt -s nullglob` + `**/*.h`; with older bash you'd need `globstar`
+  enabled as well.
+
+### Swift / Xcode
+- **Xcode** 26.3 (build `17C529`) at `/Applications/Xcode.app`
+  (active developer dir via `xcode-select -p`). Required for the iOS arm64
+  build step (`xcodebuild -sdk iphoneos -scheme CBigNumBoringSSL
+  -destination generic/platform=iOS`).
+- **Swift** 6.2.4 (`swiftlang-6.2.4.1.4`, `clang-1700.6.4.2`), default
+  target `arm64-apple-macosx26.0`. Used for the two native macOS builds
+  (`--triple x86_64-apple-macosx` and `arm64-apple-macosx`).
+- **Swift in Docker**: `swift:6.3-noble` (pulled on first run). Used for
+  both `linux/arm64` and `linux/amd64` builds.
+
+### Toolchain utilities invoked by the script
+- **Go** 1.26.2 (`darwin/arm64`). Runs the vendored
+  `scripts/vendored-util/{read_symbols,make_prefix_headers}.go`; `go mod
+  tidy -modcacherw` is executed inside `$SRCROOT` so the clone's own
+  `go.mod` resolves imports.
+- **Perl** 5.34.1 (`darwin-thread-multi-2level`). Drives all BoringSSL
+  `perlasm` scripts via `scripts/build-asm.py`, and is also used for the
+  `#define BORINGSSL_PREFIX` injection into `base.h`.
+- **Python** 3.14.4. Runs `scripts/build-asm.py` (the shebang is
+  `#!/usr/bin/env python3`; the vendoring script also calls `python3`
+  explicitly).
+- **GNU sed** (`gsed`) 4.9. The script selects `gsed` on Darwin and
+  `sed` elsewhere (`sed=gsed` / `sed=sed`); both `MANGLE_START` toggling
+  and the include-rewriting `-r` regex require GNU semantics. Install via
+  `brew install gnu-sed`.
+- **LLVM binutils from Xcode**: `nm` / `c++filt` (both Apple LLVM 17.0.0,
+  shipped with Xcode). `nm -gUj` + `c++filt` drives the
+  `mangle_cpp_structures` pass. `ar` (Apple `ar`, also from Xcode) is used
+  to roll the iOS `.o` into `libCBigNumBoringSSL-iosarm64.a`.
+- **Git** 2.50.1 (Apple Git-155). `git clone --depth 1 --branch
+  0.20260327.0`, plus `git apply` for the three inttypes patches.
+
+### Docker
+- **Docker** 29.3.1 (Docker Desktop), server 29.3.1, Linux OSType, host
+  arch `aarch64`. Used for both Linux Swift builds via
+  `--platform linux/{arm64,amd64}`. QEMU emulation handles `linux/amd64`
+  on the arm64 host (ensure "Use Rosetta for x86_64/amd64 emulation" or
+  `binfmt_misc` is enabled in Docker Desktop).
+
+### Not used by the vendoring script itself, but relevant
+- `swift test` (host macOS) is used to verify the 23 unit tests pass after
+  vendoring.
+- `docker run --rm -v "$(pwd)":/src -w /src --platform linux/arm64
+  swift:6.3-noble swift test` is the same mechanism used to verify Linux
+  parity; it re-uses the same `swift:6.3-noble` image pulled during
+  vendoring.
+
