@@ -1,0 +1,23 @@
+diff --git a/Sources/CBigNumBoringSSL/crypto/x509/t_x509.cc b/Sources/CBigNumBoringSSL/crypto/x509/t_x509.cc
+index 7a3acc8..c0bc1c5 100644
+--- a/Sources/CBigNumBoringSSL/crypto/x509/t_x509.cc
++++ b/Sources/CBigNumBoringSSL/crypto/x509/t_x509.cc
+@@ -8,6 +8,7 @@
+  */
+
+ #include <assert.h>
++#include <inttypes.h>  // for PRIu64 and friends
+
+ #include <CBigNumBoringSSL_asn1.h>
+ #include <CBigNumBoringSSL_bio.h>
+diff --git a/Sources/CBigNumBoringSSL/include/CBigNumBoringSSL_bn.h b/Sources/CBigNumBoringSSL/include/CBigNumBoringSSL_bn.h
+index 557fb1d..825b4ea 100644
+--- a/Sources/CBigNumBoringSSL/include/CBigNumBoringSSL_bn.h
++++ b/Sources/CBigNumBoringSSL/include/CBigNumBoringSSL_bn.h
+@@ -126,7 +126,6 @@
+ #include "CBigNumBoringSSL_base.h"
+ #include "CBigNumBoringSSL_thread.h"
+
+-#include <inttypes.h>  // for PRIu64 and friends
+ #include <sys/types.h>
+ #include <stdio.h>  // for FILE*

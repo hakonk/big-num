@@ -1,0 +1,13 @@
+diff --git a/Sources/CBigNumBoringSSL/crypto/evp/print.cc b/Sources/CBigNumBoringSSL/crypto/evp/print.cc
+index 89ceb32..5e6fb2f 100644
+--- a/Sources/CBigNumBoringSSL/crypto/evp/print.cc
++++ b/Sources/CBigNumBoringSSL/crypto/evp/print.cc
+@@ -7,6 +7,8 @@
+  * https://www.openssl.org/source/license.html
+  */
+
++#include <inttypes.h>
++
+ #include <CBigNumBoringSSL_evp.h>
+
+ #include <CBigNumBoringSSL_bio.h>
