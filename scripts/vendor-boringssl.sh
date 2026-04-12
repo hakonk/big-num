@@ -242,6 +242,7 @@ PATTERNS=(
 'gen/crypto/*.S'
 'gen/bcm/*.S'
 'third_party/fiat/*.h'
+'third_party/fiat/*.c.inc'
 'third_party/fiat/asm/*.S'
 )
 
