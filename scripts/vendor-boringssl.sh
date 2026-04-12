@@ -105,9 +105,9 @@ function mangle_symbols {
         )
 
         # Now cross compile for our targets.
-        docker run -t -i --rm --privileged -v"$(pwd)":/src -w/src --platform linux/arm64 swift:6.3-noble \
+        docker run --rm --privileged -v"$(pwd)":/src -w/src --platform linux/arm64 swift:6.3-noble \
             swift build --product CBigNumBoringSSL
-        docker run -t -i --rm --privileged -v"$(pwd)":/src -w/src --platform linux/amd64 swift:6.3-noble \
+        docker run --rm --privileged -v"$(pwd)":/src -w/src --platform linux/amd64 swift:6.3-noble \
             swift build --product CBigNumBoringSSL
 
         # Now we need to generate symbol mangles for Linux. We can do this in
@@ -168,7 +168,11 @@ function mangle_cpp_structures {
         # (as those were put there by the Swift runtime, not us). This gives us a list of symbols. The following cut command
         # grabs the type name from each of those (the bit preceding the '::'). Then, we sort and uniqify that list.
         # Finally, we remove any symbol that ends in std. This gives us all the structures that need to be renamed.
-        structures=$(nm -gUj "$(swift build --show-bin-path)/libCBigNumBoringSSL.a" | c++filt | grep "::" | grep -v -e "CBigNumBoringSSL" -e "swift" | cut -d : -f1 | grep -v "std$" | $sed -E -e 's/([^<>]*)(<[^<>]*>)?/\1/' | sort | uniq)
+        # The final `grep -v "std$" || true` is tolerant: if every remaining
+        # symbol is in the std:: namespace (as happens when BoringSSL's own
+        # prefixing has already covered all project-owned C++ symbols), the
+        # grep matches nothing and would otherwise exit 1 under pipefail.
+        structures=$(nm -gUj "$(swift build --show-bin-path)/libCBigNumBoringSSL.a" | c++filt | grep "::" | grep -v -e "CBigNumBoringSSL" -e "swift" | cut -d : -f1 | { grep -v "std$" || true; } | $sed -E -e 's/([^<>]*)(<[^<>]*>)?/\1/' | sort | uniq)
 
         for struct in ${structures}; do
             echo "#define ${struct} BORINGSSL_ADD_PREFIX(BORINGSSL_PREFIX, ${struct})" >> "${DSTROOT}/include/CBigNumBoringSSL_boringssl_prefix_symbols.h"
@@ -211,6 +215,16 @@ BORINGSSL_REVISION=$(git rev-parse HEAD)
 cd "$HERE"
 echo "CLONED boringssl@${BORINGSSL_REVISION}"
 
+# BoringSSL removed util/read_symbols.go and util/make_prefix_headers.go in early
+# 2026 (commits b523a5f5 and 1842c3eb) when they integrated symbol prefixing into
+# CMake via audit_symbols.go + delocate. Our mangling pipeline still relies on
+# the old helpers, so we vendor them from commit 817ab07 (the last commit where
+# both files existed, matching what swift-nio-ssl is pinned to) under
+# scripts/vendored-util/ and restore them into the clone before use.
+echo "RESTORING vendored util scripts (removed from BoringSSL upstream)"
+cp "${HERE}/scripts/vendored-util/read_symbols.go" "${SRCROOT}/util/read_symbols.go"
+cp "${HERE}/scripts/vendored-util/make_prefix_headers.go" "${SRCROOT}/util/make_prefix_headers.go"
+
 echo "OBTAINING submodules"
 (
     cd "$SRCROOT"
@@ -236,8 +250,10 @@ PATTERNS=(
 'crypto/*/*/*.h'
 'crypto/*/*/*.cc'
 'crypto/*/*/*.cc.inc'
+'crypto/*/*/*.inc'
 'crypto/*/*/*.S'
 'crypto/*/*/*/*.cc.inc'
+'crypto/*/*/*/*.inc'
 'gen/crypto/*.cc'
 'gen/crypto/*.S'
 'gen/bcm/*.S'
@@ -291,12 +307,17 @@ echo "RENAMING header files"
 
     # Now change the imports from "<openssl/X> to "<CBigNumBoringSSL_X>", apply the same prefix to the 'boringssl_prefix_symbols' headers.
     # shellcheck disable=SC2038
-    find . -name "*.[ch]" -or -name "*.cc" -or -name "*.S" -or -name "*.cc.inc" | xargs $sed -i -r -e 's#include <openssl/(([^/>]+/)*)(.+.h)>#include <\1CBigNumBoringSSL_\3>#' -e 's+include <boringssl_prefix_symbols+include <CBigNumBoringSSL_boringssl_prefix_symbols+' -e 's#include "openssl/(([^/>]+/)*)(.+.h)"#include "\1CBigNumBoringSSL_\3"#'
+    find . -name "*.[ch]" -or -name "*.cc" -or -name "*.S" -or -name "*.cc.inc" -or -name "*.c.inc" | xargs $sed -i -r -e 's#include <openssl/(([^/>]+/)*)(.+.h)>#include <\1CBigNumBoringSSL_\3>#' -e 's+include <boringssl_prefix_symbols+include <CBigNumBoringSSL_boringssl_prefix_symbols+' -e 's#include "openssl/(([^/>]+/)*)(.+.h)"#include "\1CBigNumBoringSSL_\3"#'
 
     # Okay now we need to rename the headers adding the prefix "CBigNumBoringSSL_".
     pushd include
+    # nullglob so the second loop is a no-op when there are no subdirectories
+    # (current BoringSSL layout has no subdirs under include/openssl/ by the
+    # time we get here, but older layouts did). Kept for forward-compat.
+    shopt -s nullglob
     for x in *.h; do mv -- "$x" "CBigNumBoringSSL_${x}"; done
     for x in **/*.h; do mv -- "$x" "${x%/*}/CBigNumBoringSSL_${x##*/}"; done
+    shopt -u nullglob
 
     # Finally, make sure we refer to them by their prefixed names, and change any includes from angle brackets to quotation marks.
     # shellcheck disable=SC2038
