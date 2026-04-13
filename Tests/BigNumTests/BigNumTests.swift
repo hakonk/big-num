@@ -205,6 +205,11 @@ struct BigNumTests {
         #expect(a == nil)
     }
 
+    @Test func testNotDecimal() {
+        let a = BigNum("not a number")
+        #expect(a == nil)
+    }
+
     @Test func testRandom() {
         let r = BigNum.random(bits: 96, top: .topBitSetToOne)
         #expect(r.numBits() == 96)
