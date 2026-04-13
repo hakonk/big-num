@@ -14,46 +14,52 @@ public import Foundation
 
 /// Swift wrapper class for BIGNUM functions in BoringSSL library
 public final class BigNum {
-    internal let ctx: UnsafeMutablePointer<BIGNUM>?
+    internal let ctx: UnsafeMutablePointer<BIGNUM>
 
     public init() {
-        self.ctx = CBigNumBoringSSL_BN_new()
+        guard let ctx = CBigNumBoringSSL_BN_new() else { fatalError("BN_new failed") }
+        self.ctx = ctx
     }
 
     public init(_ int: Int) {
-        let ctx = CBigNumBoringSSL_BN_new()
-        withUnsafePointer(to: int.bigEndian) { bytes in
+        let ctx: UnsafeMutablePointer<BIGNUM>? = withUnsafePointer(to: int.bigEndian) { bytes in
             let raw = UnsafeRawPointer(bytes)
             let p = raw.bindMemory(to: UInt8.self, capacity: MemoryLayout<Int>.size)
-            CBigNumBoringSSL_BN_bin2bn(p, Int(MemoryLayout<Int>.size), ctx)
+            return CBigNumBoringSSL_BN_bin2bn(p, MemoryLayout<Int>.size, nil)
         }
+        guard let ctx else { fatalError("BN_bin2bn failed") }
         self.ctx = ctx
     }
 
     public init?(_ dec: String) {
-        var ctx = CBigNumBoringSSL_BN_new()
+        var ctx: UnsafeMutablePointer<BIGNUM>? = nil
         if CBigNumBoringSSL_BN_dec2bn(&ctx, dec) == 0 {
+            if let ctx { CBigNumBoringSSL_BN_free(ctx) }
             return nil
         }
+        guard let ctx else { return nil }
         self.ctx = ctx
     }
 
     public init?(hex: String) {
-        var originalCtx = CBigNumBoringSSL_BN_new()
-        if CBigNumBoringSSL_BN_hex2bn(&originalCtx, hex) == 0 {
-            CBigNumBoringSSL_OPENSSL_free(originalCtx)
+        var ctx: UnsafeMutablePointer<BIGNUM>? = nil
+        if CBigNumBoringSSL_BN_hex2bn(&ctx, hex) == 0 {
+            if let ctx { CBigNumBoringSSL_BN_free(ctx) }
             return nil
         }
-        self.ctx = originalCtx
+        guard let ctx else { return nil }
+        self.ctx = ctx
     }
 
     public init<D: ContiguousBytes>(bytes: D) {
-        let ctx = CBigNumBoringSSL_BN_new()
-        bytes.withUnsafeBytes { bytes in
-            if let p = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-                CBigNumBoringSSL_BN_bin2bn(p, .init(bytes.count), ctx)
+        let ctx: UnsafeMutablePointer<BIGNUM>? = bytes.withUnsafeBytes { buf in
+            precondition(buf.count <= Int(Int32.max), "bytes too large")
+            guard let p = buf.baseAddress?.assumingMemoryBound(to: UInt8.self), buf.count > 0 else {
+                return CBigNumBoringSSL_BN_new()
             }
+            return CBigNumBoringSSL_BN_bin2bn(p, buf.count, nil)
         }
+        guard let ctx else { fatalError("BN_bin2bn failed") }
         self.ctx = ctx
     }
 
@@ -132,9 +138,9 @@ extension BigNum {
 
     static func operationWithCtx(_ block: (BigNum, OpaquePointer?) -> Int32) -> BigNum {
         let result = BigNum()
-        let context = CBigNumBoringSSL_BN_CTX_new()
+        guard let context = CBigNumBoringSSL_BN_CTX_new() else { fatalError("BN_CTX_new failed") }
+        defer { CBigNumBoringSSL_BN_CTX_free(context) }
         precondition(block(result, context) == 1)
-        CBigNumBoringSSL_BN_CTX_free(context)
         return result
     }
 }
@@ -323,15 +329,15 @@ extension BigNum {
     /// Bitwise operations
 
     public func setBit(_ bit: Int32) {
-        CBigNumBoringSSL_BN_set_bit(self.ctx, bit)
+        precondition(CBigNumBoringSSL_BN_set_bit(self.ctx, bit) == 1, "BN_set_bit failed")
     }
 
     public func clearBit(_ bit: Int32) {
-        CBigNumBoringSSL_BN_clear_bit(self.ctx, bit)
+        precondition(CBigNumBoringSSL_BN_clear_bit(self.ctx, bit) == 1, "BN_clear_bit failed")
     }
 
     public func mask(_ bits: Int32) {
-        CBigNumBoringSSL_BN_mask_bits(self.ctx, bits)
+        precondition(CBigNumBoringSSL_BN_mask_bits(self.ctx, bits) == 1, "BN_mask_bits failed")
     }
 
     public func isBitSet(_ bit: Int32) -> Bool {
