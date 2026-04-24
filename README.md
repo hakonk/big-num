@@ -1,6 +1,10 @@
 # BigNum
 
-BigNum provides a Swift wrapper for the BoringSSL BIGNUM library.
+BigNum provides a Swift wrapper over a small C FFI built on top of
+RustCrypto's [`crypto-bigint`](https://github.com/RustCrypto/crypto-bigint)
+and [`crypto-primes`](https://github.com/entropyxyz/crypto-primes). Earlier
+versions of this package wrapped BoringSSL; the public Swift API has been
+kept source-compatible.
 
 It provides most of the standard library functions
 - Basic arithmetic operators (with and without modulus)
@@ -57,6 +61,37 @@ let S = (B - k * g.power(x, modulus: N)).power(a + u * x, modulus: N)
 ```
 A hashed version of S can be sent back to the server and the server can use that to verify the correct password was provided.
 
-## Compatibility
+## Building
 
-BigNum uses a vendored cutdown version of BoringSSL (Google's version of OpenSSL) so doesn't require a separate OpenSSL library. This means it can be run on iOS and on macOS and Linux platforms without requiring a separate library to be installed. 
+The `BigNum` Swift target links against a Rust static library
+(`libbig_num_rustcrypto.a`) that has to be built out-of-band before
+`swift build` or `swift test`:
+
+```
+./scripts/build-rust.sh
+swift test
+```
+
+Anything that drives the package — CI, a containerized build — needs a
+working Rust toolchain (`rustup`/`cargo`) available alongside Swift.
+
+## Notes / compatibility caveats
+
+The RustCrypto backend is not a drop-in replacement for BoringSSL's BIGNUM:
+
+- **All values are non-negative.** BoringSSL allowed signed BIGNUM values; the
+  Swift API already only worked with non-negative integers, and the new
+  backend enforces that.
+- **`power(_:modulus:)` requires an odd modulus.** `crypto-bigint`'s
+  `pow_mod` only supports odd moduli. Every modulus used by the previous
+  Swift API (in tests or by callers like SRP) is an odd prime, so this is
+  normally not a concern.
+- **`generatePrime(add:remainder:)`** is no longer supported — crypto-primes
+  doesn't expose those constraints. Passing anything other than `nil` will
+  trigger a precondition failure.
+- **`isPrime(numChecks:)`** ignores `numChecks`; the backend uses a
+  Baillie-PSW test, which is at least as strong as Miller-Rabin with many
+  rounds.
+- **`psuedo_random(...)`** is aliased to `random(...)`. There is no separate
+  non-cryptographic PRNG path.
+

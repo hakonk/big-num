@@ -1,0 +1,18 @@
+[package]
+name = "big_num_rustcrypto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "big_num_rustcrypto"
+crate-type = ["staticlib"]
+
+[dependencies]
+crypto-bigint = { version = "0.7", features = ["alloc", "rand_core", "getrandom"] }
+crypto-primes = { version = "0.7" }
+getrandom = { version = "0.4", features = ["sys_rng", "std"] }
+
+[profile.release]
+lto = true
+opt-level = 3

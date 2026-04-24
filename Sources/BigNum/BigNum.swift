@@ -1,10 +1,12 @@
 ///
 /// BigNum.swift
-/// A swift wrapper for BIGNUM functions in BoringSSL library
-/// Inspired by the implementation here https://github.com/Bouke/Bignum
+/// A Swift wrapper around the Rust `big_num_rustcrypto` crate, which exposes a
+/// BoringSSL-BIGNUM-style API backed by RustCrypto's `crypto-bigint` and
+/// `crypto-primes`.
+/// Originally inspired by https://github.com/Bouke/Bignum
 ///
 
-internal import CBigNumBoringSSL
+internal import CBigNumRustCrypto
 
 #if canImport(FoundationEssentials)
 public import FoundationEssentials
@@ -12,104 +14,102 @@ public import FoundationEssentials
 public import Foundation
 #endif
 
-/// Swift wrapper class for BIGNUM functions in BoringSSL library
+/// Swift wrapper class over the opaque `RCBigNum` handle vended by the Rust
+/// FFI. Each instance owns its underlying handle and frees it on `deinit`.
 public final class BigNum {
-    internal let ctx: UnsafeMutablePointer<BIGNUM>?
+    @usableFromInline
+    internal let ctx: OpaquePointer
+
+    internal init(takingOwnership ptr: OpaquePointer) {
+        self.ctx = ptr
+    }
+
+    private static func take(_ ptr: OpaquePointer?) -> OpaquePointer {
+        guard let ptr else { preconditionFailure("BigNum FFI returned NULL") }
+        return ptr
+    }
 
     public init() {
-        self.ctx = CBigNumBoringSSL_BN_new()
+        self.ctx = Self.take(rc_bignum_new())
     }
 
     public init(_ int: Int) {
-        let ctx = CBigNumBoringSSL_BN_new()
-        withUnsafePointer(to: int.bigEndian) { bytes in
-            let raw = UnsafeRawPointer(bytes)
-            let p = raw.bindMemory(to: UInt8.self, capacity: MemoryLayout<Int>.size)
-            CBigNumBoringSSL_BN_bin2bn(p, Int(MemoryLayout<Int>.size), ctx)
-        }
-        self.ctx = ctx
+        self.ctx = Self.take(rc_bignum_from_i64(Int64(int)))
     }
 
     public init?(_ dec: String) {
-        var ctx = CBigNumBoringSSL_BN_new()
-        if CBigNumBoringSSL_BN_dec2bn(&ctx, dec) == 0 {
+        guard let ptr = dec.withCString({ rc_bignum_from_dec($0) }) else {
             return nil
         }
-        self.ctx = ctx
+        self.ctx = ptr
     }
 
     public init?(hex: String) {
-        var originalCtx = CBigNumBoringSSL_BN_new()
-        if CBigNumBoringSSL_BN_hex2bn(&originalCtx, hex) == 0 {
-            CBigNumBoringSSL_OPENSSL_free(originalCtx)
+        guard let ptr = hex.withCString({ rc_bignum_from_hex($0) }) else {
             return nil
         }
-        self.ctx = originalCtx
+        self.ctx = ptr
     }
 
     public init<D: ContiguousBytes>(bytes: D) {
-        let ctx = CBigNumBoringSSL_BN_new()
-        bytes.withUnsafeBytes { bytes in
-            if let p = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-                CBigNumBoringSSL_BN_bin2bn(p, .init(bytes.count), ctx)
-            }
+        let ptr: OpaquePointer = bytes.withUnsafeBytes { buf in
+            let base = buf.baseAddress?.assumingMemoryBound(to: UInt8.self)
+            return Self.take(rc_bignum_from_be_bytes(base, buf.count))
         }
-        self.ctx = ctx
+        self.ctx = ptr
     }
 
     deinit {
-        CBigNumBoringSSL_BN_free(ctx)
+        rc_bignum_free(ctx)
     }
 
+    /// Raw big-endian byte representation, trimmed of leading zeroes. Value 0
+    /// yields an empty `Data`.
     public var data: Data {
-        var data = Data(count: Int((CBigNumBoringSSL_BN_num_bits(ctx) + 7) / 8))
-        data.withUnsafeMutableBytes { bytes in
-            if let p = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-                CBigNumBoringSSL_BN_bn2bin(self.ctx, p)
-            }
+        let length = rc_bignum_to_be_bytes(ctx, nil, 0)
+        guard length > 0 else { return Data() }
+        var data = Data(count: length)
+        data.withUnsafeMutableBytes { buf in
+            let base = buf.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            _ = rc_bignum_to_be_bytes(ctx, base, length)
         }
         return data
     }
 
     public var bytes: [UInt8] {
-        var bytes = [UInt8].init(
-            repeating: 0,
-            count: Int((CBigNumBoringSSL_BN_num_bits(self.ctx) + 7) / 8)
-        )
-        bytes.withUnsafeMutableBytes { bytes in
-            if let p = bytes.baseAddress?.assumingMemoryBound(to: UInt8.self) {
-                CBigNumBoringSSL_BN_bn2bin(self.ctx, p)
-            }
+        let length = rc_bignum_to_be_bytes(ctx, nil, 0)
+        guard length > 0 else { return [] }
+        var out = [UInt8](repeating: 0, count: length)
+        out.withUnsafeMutableBufferPointer { buf in
+            _ = rc_bignum_to_be_bytes(ctx, buf.baseAddress, length)
         }
-        return bytes
+        return out
     }
 
     public var dec: String {
-        guard let cString = CBigNumBoringSSL_BN_bn2dec(self.ctx) else { return "" }
-        defer { CBigNumBoringSSL_OPENSSL_free(cString) }
-        return String(cString: cString)
+        guard let cStr = rc_bignum_to_dec(ctx) else { return "" }
+        defer { rc_bignum_free_cstr(cStr) }
+        return String(cString: cStr)
     }
 
     public var hex: String {
-        guard let cString = CBigNumBoringSSL_BN_bn2hex(self.ctx) else { return "" }
-        defer { CBigNumBoringSSL_OPENSSL_free(cString) }
-        return String(cString: cString)
+        guard let cStr = rc_bignum_to_hex(ctx) else { return "" }
+        defer { rc_bignum_free_cstr(cStr) }
+        return String(cString: cStr)
     }
 }
 
 extension BigNum: CustomStringConvertible {
-    public var description: String {
-        self.dec
-    }
+    public var description: String { self.dec }
 }
 
 extension BigNum: Comparable {
     public static func == (lhs: BigNum, rhs: BigNum) -> Bool {
-        CBigNumBoringSSL_BN_equal_consttime(lhs.ctx, rhs.ctx) == 1
+        rc_bignum_equal(lhs.ctx, rhs.ctx) == 1
     }
 
     public static func < (lhs: BigNum, rhs: BigNum) -> Bool {
-        CBigNumBoringSSL_BN_cmp(lhs.ctx, rhs.ctx) == -1
+        rc_bignum_cmp(lhs.ctx, rhs.ctx) == -1
     }
 }
 
@@ -121,229 +121,117 @@ extension BigNum: ExpressibleByIntegerLiteral {
     }
 }
 
-// MARK: Operations
+// MARK: - Binary arithmetic operators
 
-extension BigNum {
-    static func operation(_ block: (_ result: BigNum) -> Int32) -> BigNum {
-        let result = BigNum()
-        precondition(block(result) == 1)
-        return result
-    }
-
-    static func operationWithCtx(_ block: (BigNum, OpaquePointer?) -> Int32) -> BigNum {
-        let result = BigNum()
-        let context = CBigNumBoringSSL_BN_CTX_new()
-        precondition(block(result, context) == 1)
-        CBigNumBoringSSL_BN_CTX_free(context)
-        return result
-    }
+private func wrap(_ ptr: OpaquePointer?) -> BigNum {
+    guard let ptr else { preconditionFailure("BigNum FFI returned NULL") }
+    return BigNum(takingOwnership: ptr)
 }
 
 public func + (lhs: BigNum, rhs: BigNum) -> BigNum {
-    BigNum.operation {
-        CBigNumBoringSSL_BN_add($0.ctx, lhs.ctx, rhs.ctx)
-    }
+    wrap(rc_bignum_add(lhs.ctx, rhs.ctx))
 }
 
 public func - (lhs: BigNum, rhs: BigNum) -> BigNum {
-    BigNum.operation {
-        CBigNumBoringSSL_BN_sub($0.ctx, lhs.ctx, rhs.ctx)
-    }
+    wrap(rc_bignum_sub(lhs.ctx, rhs.ctx))
 }
 
 public func * (lhs: BigNum, rhs: BigNum) -> BigNum {
-    BigNum.operationWithCtx {
-        CBigNumBoringSSL_BN_mul($0.ctx, lhs.ctx, rhs.ctx, $1)
-    }
+    wrap(rc_bignum_mul(lhs.ctx, rhs.ctx))
 }
 
-/// Returns lhs / rhs, rounded to zero.
+/// Returns `lhs / rhs`, rounded toward zero.
 public func / (lhs: BigNum, rhs: BigNum) -> BigNum {
-    BigNum.operationWithCtx {
-        CBigNumBoringSSL_BN_div($0.ctx, nil, lhs.ctx, rhs.ctx, $1)
-    }
+    wrap(rc_bignum_div(lhs.ctx, rhs.ctx))
 }
 
-/// Returns lhs / rhs, rounded to zero.
+/// Returns `lhs % rhs`.
 public func % (lhs: BigNum, rhs: BigNum) -> BigNum {
-    BigNum.operationWithCtx {
-        CBigNumBoringSSL_BN_div(nil, $0.ctx, lhs.ctx, rhs.ctx, $1)
-    }
+    wrap(rc_bignum_mod(lhs.ctx, rhs.ctx))
 }
 
-/// right shift
 public func >> (lhs: BigNum, shift: Int32) -> BigNum {
-    BigNum.operation {
-        CBigNumBoringSSL_BN_rshift($0.ctx, lhs.ctx, shift)
-    }
+    wrap(rc_bignum_rshift(lhs.ctx, UInt32(shift)))
 }
 
-/// left shift
 public func << (lhs: BigNum, shift: Int32) -> BigNum {
-    BigNum.operation {
-        CBigNumBoringSSL_BN_lshift($0.ctx, lhs.ctx, shift)
-    }
+    wrap(rc_bignum_lshift(lhs.ctx, UInt32(shift)))
 }
 
-// MARK: Member Operations
+// MARK: - Member operations
 
 extension BigNum {
-    public static func += (lhs: inout BigNum, rhs: BigNum) {
-        lhs = BigNum.operation {
-            CBigNumBoringSSL_BN_add($0.ctx, lhs.ctx, rhs.ctx)
-        }
-    }
+    public static func += (lhs: inout BigNum, rhs: BigNum) { lhs = lhs + rhs }
+    public static func -= (lhs: inout BigNum, rhs: BigNum) { lhs = lhs - rhs }
+    public static func *= (lhs: inout BigNum, rhs: BigNum) { lhs = lhs * rhs }
+    public static func /= (lhs: inout BigNum, rhs: BigNum) { lhs = lhs / rhs }
+    public static func %= (lhs: inout BigNum, rhs: BigNum) { lhs = lhs % rhs }
 
-    public static func -= (lhs: inout BigNum, rhs: BigNum) {
-        lhs = BigNum.operation {
-            CBigNumBoringSSL_BN_sub($0.ctx, lhs.ctx, rhs.ctx)
-        }
-    }
-
-    public static func *= (lhs: inout BigNum, rhs: BigNum) {
-        lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mul($0.ctx, lhs.ctx, rhs.ctx, $1)
-        }
-    }
-
-    public static func /= (lhs: inout BigNum, rhs: BigNum) {
-        lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_div(
-                $0.ctx,
-                nil,
-                lhs.ctx,
-                rhs.ctx,
-                $1
-            )
-        }
-    }
-
-    public static func %= (lhs: inout BigNum, rhs: BigNum) {
-        lhs = BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_div(
-                nil,
-                $0.ctx,
-                lhs.ctx,
-                rhs.ctx,
-                $1
-            )
-        }
-    }
-
-    /// Returns: (self ** 2)
+    /// Returns: `self ** 2`.
     public func sqr() -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_sqr($0.ctx, self.ctx, $1)
-        }
+        wrap(rc_bignum_sqr(ctx))
     }
 
-    /// Returns: (self ** p)
+    /// Returns: `self ** p`.
     public func power(_ p: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_exp($0.ctx, self.ctx, p.ctx, $1)
-        }
+        wrap(rc_bignum_exp(ctx, p.ctx))
     }
 
-    /// Returns: (self + b) % N
+    /// Returns: `(self + b) % N`.
     public func add(_ b: BigNum, modulus: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mod_add(
-                $0.ctx,
-                self.ctx,
-                b.ctx,
-                modulus.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_mod_add(ctx, b.ctx, modulus.ctx))
     }
 
-    /// Returns: (a - b) % N
+    /// Returns: `(self - b) % N`.
     public func sub(_ b: BigNum, modulus: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mod_sub(
-                $0.ctx,
-                self.ctx,
-                b.ctx,
-                modulus.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_mod_sub(ctx, b.ctx, modulus.ctx))
     }
 
-    /// Returns: (a * b) % N
+    /// Returns: `(self * b) % N`.
     public func mul(_ b: BigNum, modulus: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mod_mul(
-                $0.ctx,
-                self.ctx,
-                b.ctx,
-                modulus.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_mod_mul(ctx, b.ctx, modulus.ctx))
     }
 
-    /// Returns: (a ** 2) % N
+    /// Returns: `(self ** 2) % N`.
     public func sqr(modulus: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mod_sqr(
-                $0.ctx,
-                self.ctx,
-                modulus.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_mod_sqr(ctx, modulus.ctx))
     }
 
-    /// Returns: (a ** p) % N
+    /// Returns: `(self ** p) % N`. The modulus must be odd (every use site in
+    /// the Swift layer passes odd primes). Passing an even modulus will
+    /// trigger a precondition failure.
     public func power(_ p: BigNum, modulus: BigNum) -> BigNum {
-        BigNum.operationWithCtx {
-            CBigNumBoringSSL_BN_mod_exp(
-                $0.ctx,
-                self.ctx,
-                p.ctx,
-                modulus.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_mod_exp(ctx, p.ctx, modulus.ctx))
     }
 
-    /// Return greatest common denominator
+    /// Greatest common denominator.
     public static func gcd(_ first: BigNum, _ second: BigNum) -> BigNum {
-        self.operationWithCtx {
-            CBigNumBoringSSL_BN_gcd(
-                $0.ctx,
-                first.ctx,
-                second.ctx,
-                $1
-            )
-        }
+        wrap(rc_bignum_gcd(first.ctx, second.ctx))
     }
 
-    /// Bitwise operations
+    // MARK: Bit operations
 
     public func setBit(_ bit: Int32) {
-        CBigNumBoringSSL_BN_set_bit(self.ctx, bit)
+        rc_bignum_set_bit(ctx, UInt32(bit))
     }
 
     public func clearBit(_ bit: Int32) {
-        CBigNumBoringSSL_BN_clear_bit(self.ctx, bit)
+        rc_bignum_clear_bit(ctx, UInt32(bit))
     }
 
     public func mask(_ bits: Int32) {
-        CBigNumBoringSSL_BN_mask_bits(self.ctx, bits)
+        rc_bignum_mask_bits(ctx, UInt32(bits))
     }
 
     public func isBitSet(_ bit: Int32) -> Bool {
-        let set = CBigNumBoringSSL_BN_is_bit_set(self.ctx, bit)
-        return set == 1 ? true : false
+        rc_bignum_is_bit_set(ctx, UInt32(bit)) == 1
     }
 
     public func numBits() -> UInt32 {
-        CBigNumBoringSSL_BN_num_bits(self.ctx)
+        rc_bignum_num_bits(ctx)
     }
 
-    /// random number generators
+    // MARK: Random generation
 
     public enum Top: Int32 {
         case any = -1
@@ -351,60 +239,52 @@ extension BigNum {
         case topTwoBitsSetToOne = 1
     }
 
-    /// return cryptographically strong random number of maximum size defined in bits. random needs seeding prior to be called
+    /// Cryptographically strong random number of maximum size defined in bits.
     public static func random(bits: Int32, top: Top = .any, odd: Bool = false) -> BigNum {
-        self.operation {
-            CBigNumBoringSSL_BN_rand($0.ctx, bits, top.rawValue, odd ? 1 : 0)
-        }
+        wrap(rc_bignum_rand_bits(UInt32(bits), top.rawValue, odd ? 1 : 0))
     }
 
-    /// return pseudo random number of maximum size defined in bits.
+    /// Retained for source-compatibility. `crypto-bigint` only ships a CSPRNG
+    /// path, so this is identical to ``random(bits:top:odd:)``.
     public static func psuedo_random(bits: Int32, top: Top = .any, odd: Bool = false) -> BigNum {
-        self.operation {
-            CBigNumBoringSSL_BN_pseudo_rand($0.ctx, bits, top.rawValue, odd ? 1 : 0)
-        }
+        random(bits: bits, top: top, odd: odd)
     }
 
-    /// return cryptographically strong random number in range (0...max-1). random needs seeding prior to be called
+    /// Cryptographically strong random number in range `0..<max`.
     public static func random(max: BigNum) -> BigNum {
-        self.operation {
-            CBigNumBoringSSL_BN_rand_range($0.ctx, max.ctx)
-        }
+        wrap(rc_bignum_rand_range(max.ctx))
     }
 
-    /// return pseudo random number in range (0..<max)
+    /// See ``psuedo_random(bits:top:odd:)``.
     public static func psuedo_random(max: BigNum) -> BigNum {
-        self.operation {
-            CBigNumBoringSSL_BN_pseudo_rand_range($0.ctx, max.ctx)
-        }
+        random(max: max)
     }
 
-    /// prime number generator
+    // MARK: Primes
+
+    /// Generate a random prime of the requested bit size.
+    ///
+    /// The `add` / `remainder` parameters that BoringSSL's
+    /// `BN_generate_prime_ex` exposed are not supported by `crypto-primes`.
+    /// They are accepted for source-compatibility but must be `nil`.
     public static func generatePrime(
         bitSize: Int32,
         safe: Bool,
         add: BigNum? = nil,
         remainder: BigNum? = nil
     ) -> BigNum {
-        self.operation {
-            CBigNumBoringSSL_BN_generate_prime_ex(
-                $0.ctx,
-                bitSize,
-                safe ? 1 : 0,
-                add?.ctx,
-                remainder?.ctx,
-                nil
-            )
-        }
+        precondition(
+            add == nil && remainder == nil,
+            "generatePrime(add:remainder:) is no longer supported by the RustCrypto backend"
+        )
+        return wrap(rc_bignum_generate_prime(UInt32(bitSize), safe ? 1 : 0))
     }
 
-    /// prime number generator
+    /// Probabilistic primality check. `numChecks` is accepted for
+    /// source-compatibility but ignored — `crypto-primes` performs a
+    /// Baillie-PSW test, which has no known counterexamples.
     public func isPrime(numChecks: Int32) -> Bool {
-        let context = CBigNumBoringSSL_BN_CTX_new()
-        defer {
-            CBigNumBoringSSL_BN_CTX_free(context)
-        }
-        return CBigNumBoringSSL_BN_is_prime_ex(self.ctx, numChecks, context, nil) == 1
+        rc_bignum_is_prime(ctx) == 1
     }
 }
 

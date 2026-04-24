@@ -1,9 +1,17 @@
-FROM swift:5.0 as builder
+FROM swift:6.1 as builder
 
-RUN apt-get -qq update && apt-get install -y \
-  libssl-dev zlib1g-dev \
-  && rm -r /var/lib/apt/lists/*
+# Install Rust (required for the crypto-bigint FFI library used by BigNum).
+RUN apt-get -qq update \
+ && apt-get install -y --no-install-recommends curl ca-certificates build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV RUSTUP_HOME=/usr/local/rustup \
+    CARGO_HOME=/usr/local/cargo \
+    PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+  | sh -s -- -y --default-toolchain stable --profile minimal
 
 WORKDIR /BigNum
 COPY . .
-RUN swift test
+RUN ./scripts/build-rust.sh \
+ && swift test
