@@ -21,15 +21,21 @@ jobs:
     - name: Build Rust FFI library
       run: ./scripts/build-rust.sh
     - name: Build
+      env:
+        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift build
     - name: Run tests
+      env:
+        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift test
 
   linux:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
         tag: ['6.1', '6.2']
+    runs-on: ${{ matrix.runner }}
     container:
       image: swift:${{ matrix.tag }}
     steps:
@@ -47,4 +53,26 @@ jobs:
     - name: Build Rust FFI library
       run: ./scripts/build-rust.sh
     - name: Test
+      run: swift test
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+    - name: Install Swift
+      uses: compnerd/gha-setup-swift@main
+      with:
+        branch: swift-6.1-release
+        tag: 6.1-RELEASE
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Build Rust FFI library
+      shell: pwsh
+      run: ./scripts/build-rust.ps1
+    - name: Test
+      shell: pwsh
+      env:
+        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift test

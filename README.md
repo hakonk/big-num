@@ -77,7 +77,7 @@ SwiftPM downloads the XCFramework, hashes it, and refuses to use it if the
 hash doesn't match the `checksum:` committed in `Package.swift`. The only
 thing a consumer has to trust is the git history.
 
-### Linux
+### Linux (x86_64 and aarch64)
 
 Linux can't use `.binaryTarget` (XCFrameworks are Apple-only), so it falls
 back to building the Rust crate from source. Run the helper script before
@@ -88,9 +88,26 @@ back to building the Rust crate from source. Run the helper script before
 swift test
 ```
 
-This requires `rustup`/`cargo` on `PATH`.
+This requires `rustup`/`cargo` on `PATH`. Both x86_64 and aarch64 hosts are
+exercised in CI.
 
-### Local development (FFI iteration)
+### Windows
+
+Same source-build flow as Linux, with a PowerShell helper:
+
+```
+.\scripts\build-rust.ps1
+$env:BIGNUM_BUILD_FROM_SOURCE = '1'; swift test
+```
+
+Requires the Swift for Windows toolchain (https://swift.org/install/windows)
+and Rust via [`rustup-init.exe`](https://rustup.rs/). Tested with the MSVC
+toolchain (`x86_64-pc-windows-msvc` / `aarch64-pc-windows-msvc`); the GNU
+toolchain isn't covered by CI. `getrandom` reaches `bcryptprimitives.dll`
+through Rust's `raw-dylib` binding, so no extra system libraries need to be
+linked in.
+
+### Local development (FFI iteration on macOS)
 
 When iterating on the Rust FFI on macOS — before there's a release with the
 new symbols — set `BIGNUM_BUILD_FROM_SOURCE=1` so SwiftPM builds the
@@ -110,9 +127,19 @@ BIGNUM_BUILD_FROM_SOURCE=1 swift test
    ./scripts/build-xcframework.sh
    ```
 
-   This cross-compiles for macOS (arm64+x86_64), iOS device (arm64), iOS
-   simulator (arm64+x86_64), and Mac Catalyst (arm64+x86_64), assembles
-   them into an XCFramework, zips it, and prints the SHA-256.
+   By default this cross-compiles the Tier-1/Tier-2 platforms — macOS
+   (arm64+x86_64), iOS device (arm64), iOS simulator (arm64+x86_64), and
+   Mac Catalyst (arm64+x86_64) — assembles them into an XCFramework, zips
+   it, and prints the SHA-256.
+
+   To include Tier-3 platforms set the corresponding env flag(s); these
+   require a nightly toolchain plus the `rust-src` component (the script
+   installs them via `rustup` on demand):
+
+   ```
+   ENABLE_TVOS=1 ENABLE_WATCHOS=1 ENABLE_VISIONOS=1 ./scripts/build-xcframework.sh
+   ```
+
 3. Upload `build/xcframework/CBigNumRustCrypto.xcframework.zip` to the
    GitHub release for the new tag.
 4. Update `Package.swift`'s `xcframeworkURL` and `xcframeworkChecksum` to
