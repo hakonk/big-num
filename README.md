@@ -63,17 +63,60 @@ A hashed version of S can be sent back to the server and the server can use that
 
 ## Building
 
-The `BigNum` Swift target links against a Rust static library
-(`libbig_num_rustcrypto.a`) that has to be built out-of-band before
-`swift build` or `swift test`:
+### Apple platforms (consumers)
+
+`Package.swift` consumes a pre-built `CBigNumRustCrypto.xcframework` via a
+`.binaryTarget` pinned to a SHA-256 checksum, so consumers get the normal
+SwiftPM experience — no Rust toolchain required:
+
+```
+swift build
+```
+
+SwiftPM downloads the XCFramework, hashes it, and refuses to use it if the
+hash doesn't match the `checksum:` committed in `Package.swift`. The only
+thing a consumer has to trust is the git history.
+
+### Linux
+
+Linux can't use `.binaryTarget` (XCFrameworks are Apple-only), so it falls
+back to building the Rust crate from source. Run the helper script before
+`swift build`/`swift test`:
 
 ```
 ./scripts/build-rust.sh
 swift test
 ```
 
-Anything that drives the package — CI, a containerized build — needs a
-working Rust toolchain (`rustup`/`cargo`) available alongside Swift.
+This requires `rustup`/`cargo` on `PATH`.
+
+### Local development (FFI iteration)
+
+When iterating on the Rust FFI on macOS — before there's a release with the
+new symbols — set `BIGNUM_BUILD_FROM_SOURCE=1` so SwiftPM builds the
+`CBigNumRustCrypto` C target from source instead of pulling the XCFramework:
+
+```
+./scripts/build-rust.sh
+BIGNUM_BUILD_FROM_SOURCE=1 swift test
+```
+
+### Cutting a release
+
+1. Bump the version in `rust/Cargo.toml` if appropriate, commit and tag.
+2. On macOS with Xcode + Rust installed, run:
+
+   ```
+   ./scripts/build-xcframework.sh
+   ```
+
+   This cross-compiles for macOS (arm64+x86_64), iOS device (arm64), iOS
+   simulator (arm64+x86_64), and Mac Catalyst (arm64+x86_64), assembles
+   them into an XCFramework, zips it, and prints the SHA-256.
+3. Upload `build/xcframework/CBigNumRustCrypto.xcframework.zip` to the
+   GitHub release for the new tag.
+4. Update `Package.swift`'s `xcframeworkURL` and `xcframeworkChecksum` to
+   point at the new release URL and the printed checksum, then commit.
 
 ## Notes / compatibility caveats
 

@@ -6,3 +6,4 @@
 /*.xcodeproj
 xcuserdata/
 /rust/target
+/build
