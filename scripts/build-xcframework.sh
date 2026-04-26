@@ -1,16 +1,21 @@
 #!/usr/bin/env bash
-# Builds the Rust FFI library for every Apple architecture, packs the slices
-# into `CBigNumRustCrypto.xcframework`, zips it, and prints the SHA-256
-# checksum to paste into Package.swift's `.binaryTarget(checksum:)`.
+# Builds the Rust FFI library for every supported Apple architecture, packs
+# the slices into `CBigNumRustCrypto.xcframework`, zips it, and prints the
+# SHA-256 checksum to paste into Package.swift's `.binaryTarget(checksum:)`.
 #
 # Must be run on macOS with Xcode (`xcodebuild`, `lipo`) and Rust
 # (`cargo`, `rustup`) installed.
 #
-# Default: macOS, iOS device, iOS simulator, Mac Catalyst.
-# Optional Tier-3 platforms are gated behind environment flags because they
-# require a nightly Rust toolchain, the `rust-src` component, and `-Z
-# build-std`. Pass any combination of:
-#   ENABLE_TVOS=1    ENABLE_WATCHOS=1    ENABLE_VISIONOS=1
+# Slice coverage:
+#   Tier-1/2 (stable rustup):  macOS, iOS device, iOS simulator, Mac Catalyst
+#   Tier-3   (nightly + -Z build-std):  tvOS device, tvOS simulator,
+#                                       watchOS device, watchOS simulator,
+#                                       visionOS device, visionOS simulator
+#
+# The script auto-installs the nightly toolchain and `rust-src` component
+# via `rustup` so callers don't need to set anything up themselves. Override
+# the toolchain channel with `NIGHTLY_TOOLCHAIN=nightly-YYYY-MM-DD` if a
+# specific date is needed.
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -33,6 +38,8 @@ LIB_NAME="big_num_rustcrypto"
 ARCHIVE="lib${LIB_NAME}.a"
 FRAMEWORK_NAME="CBigNumRustCrypto"
 
+NIGHTLY_TOOLCHAIN="${NIGHTLY_TOOLCHAIN:-nightly}"
+
 # Tier-1 / Tier-2 (work with stock stable rustup).
 MACOS_TARGETS=(aarch64-apple-darwin x86_64-apple-darwin)
 IOS_DEVICE_TARGETS=(aarch64-apple-ios)
@@ -46,42 +53,28 @@ STABLE_TARGETS=(
     "${CATALYST_TARGETS[@]}"
 )
 
-# Tier-3 (require nightly + -Z build-std). Filled in based on env flags.
-TVOS_DEVICE_TARGETS=()
-TVOS_SIM_TARGETS=()
-WATCHOS_DEVICE_TARGETS=()
-WATCHOS_SIM_TARGETS=()
-VISIONOS_DEVICE_TARGETS=()
-VISIONOS_SIM_TARGETS=()
-TIER3_TARGETS=()
+# Tier-3 (require nightly + -Z build-std). Always built.
+TVOS_DEVICE_TARGETS=(aarch64-apple-tvos)
+TVOS_SIM_TARGETS=(aarch64-apple-tvos-sim x86_64-apple-tvos)
+WATCHOS_DEVICE_TARGETS=(aarch64-apple-watchos)
+WATCHOS_SIM_TARGETS=(aarch64-apple-watchos-sim x86_64-apple-watchos-sim)
+VISIONOS_DEVICE_TARGETS=(aarch64-apple-visionos)
+VISIONOS_SIM_TARGETS=(aarch64-apple-visionos-sim)
 
-if [[ "${ENABLE_TVOS:-0}" == "1" ]]; then
-    TVOS_DEVICE_TARGETS=(aarch64-apple-tvos)
-    TVOS_SIM_TARGETS=(aarch64-apple-tvos-sim x86_64-apple-tvos)
-    TIER3_TARGETS+=("${TVOS_DEVICE_TARGETS[@]}" "${TVOS_SIM_TARGETS[@]}")
-fi
-if [[ "${ENABLE_WATCHOS:-0}" == "1" ]]; then
-    WATCHOS_DEVICE_TARGETS=(aarch64-apple-watchos)
-    WATCHOS_SIM_TARGETS=(aarch64-apple-watchos-sim x86_64-apple-watchos-sim)
-    TIER3_TARGETS+=("${WATCHOS_DEVICE_TARGETS[@]}" "${WATCHOS_SIM_TARGETS[@]}")
-fi
-if [[ "${ENABLE_VISIONOS:-0}" == "1" ]]; then
-    VISIONOS_DEVICE_TARGETS=(aarch64-apple-visionos)
-    VISIONOS_SIM_TARGETS=(aarch64-apple-visionos-sim)
-    TIER3_TARGETS+=("${VISIONOS_DEVICE_TARGETS[@]}" "${VISIONOS_SIM_TARGETS[@]}")
-fi
+TIER3_TARGETS=(
+    "${TVOS_DEVICE_TARGETS[@]}" "${TVOS_SIM_TARGETS[@]}"
+    "${WATCHOS_DEVICE_TARGETS[@]}" "${WATCHOS_SIM_TARGETS[@]}"
+    "${VISIONOS_DEVICE_TARGETS[@]}" "${VISIONOS_SIM_TARGETS[@]}"
+)
 
 echo "==> Ensuring stable rustup targets are installed"
 for t in "${STABLE_TARGETS[@]}"; do
     rustup target add "$t" >/dev/null
 done
 
-if (( ${#TIER3_TARGETS[@]} > 0 )); then
-    NIGHTLY_TOOLCHAIN="${NIGHTLY_TOOLCHAIN:-nightly}"
-    echo "==> Tier-3 targets requested; ensuring $NIGHTLY_TOOLCHAIN + rust-src"
-    rustup toolchain install "$NIGHTLY_TOOLCHAIN" --profile minimal >/dev/null
-    rustup component add rust-src --toolchain "$NIGHTLY_TOOLCHAIN" >/dev/null
-fi
+echo "==> Ensuring $NIGHTLY_TOOLCHAIN + rust-src for Tier-3 targets"
+rustup toolchain install "$NIGHTLY_TOOLCHAIN" --profile minimal >/dev/null
+rustup component add rust-src --toolchain "$NIGHTLY_TOOLCHAIN" >/dev/null
 
 echo "==> Building Rust staticlib for each stable Apple target"
 pushd rust >/dev/null
@@ -90,15 +83,13 @@ for t in "${STABLE_TARGETS[@]}"; do
     cargo build --release --target "$t"
 done
 
-if (( ${#TIER3_TARGETS[@]} > 0 )); then
-    echo "==> Building Rust staticlib for each Tier-3 target (nightly + build-std)"
-    for t in "${TIER3_TARGETS[@]}"; do
-        echo "    -> $t"
-        cargo "+$NIGHTLY_TOOLCHAIN" build --release \
-            -Z build-std=core,alloc,std,panic_abort \
-            --target "$t"
-    done
-fi
+echo "==> Building Rust staticlib for each Tier-3 target (nightly + build-std)"
+for t in "${TIER3_TARGETS[@]}"; do
+    echo "    -> $t"
+    cargo "+$NIGHTLY_TOOLCHAIN" build --release \
+        -Z build-std=core,alloc,std,panic_abort \
+        --target "$t"
+done
 popd >/dev/null
 
 # Stage everything under build/xcframework/
@@ -142,57 +133,40 @@ MACOS_LIB="$BUILD/macos-$ARCHIVE"
 IOS_DEVICE_LIB="$BUILD/ios-device-$ARCHIVE"
 IOS_SIM_LIB="$BUILD/ios-sim-$ARCHIVE"
 CATALYST_LIB="$BUILD/catalyst-$ARCHIVE"
+TVOS_DEVICE_LIB="$BUILD/tvos-device-$ARCHIVE"
+TVOS_SIM_LIB="$BUILD/tvos-sim-$ARCHIVE"
+WATCHOS_DEVICE_LIB="$BUILD/watchos-device-$ARCHIVE"
+WATCHOS_SIM_LIB="$BUILD/watchos-sim-$ARCHIVE"
+VISIONOS_DEVICE_LIB="$BUILD/visionos-device-$ARCHIVE"
+VISIONOS_SIM_LIB="$BUILD/visionos-sim-$ARCHIVE"
 
-build_slice_lib "$MACOS_LIB"      "${MACOS_TARGETS[@]}"
-build_slice_lib "$IOS_DEVICE_LIB" "${IOS_DEVICE_TARGETS[@]}"
-build_slice_lib "$IOS_SIM_LIB"    "${IOS_SIM_TARGETS[@]}"
-build_slice_lib "$CATALYST_LIB"   "${CATALYST_TARGETS[@]}"
-
-XCFRAMEWORK_ARGS=(
-    -library "$MACOS_LIB"        -headers "$HEADERS"
-    -library "$IOS_DEVICE_LIB"   -headers "$HEADERS"
-    -library "$IOS_SIM_LIB"      -headers "$HEADERS"
-    -library "$CATALYST_LIB"     -headers "$HEADERS"
-)
-
-if (( ${#TVOS_DEVICE_TARGETS[@]} > 0 )); then
-    TVOS_DEVICE_LIB="$BUILD/tvos-device-$ARCHIVE"
-    TVOS_SIM_LIB="$BUILD/tvos-sim-$ARCHIVE"
-    build_slice_lib "$TVOS_DEVICE_LIB" "${TVOS_DEVICE_TARGETS[@]}"
-    build_slice_lib "$TVOS_SIM_LIB"    "${TVOS_SIM_TARGETS[@]}"
-    XCFRAMEWORK_ARGS+=(
-        -library "$TVOS_DEVICE_LIB" -headers "$HEADERS"
-        -library "$TVOS_SIM_LIB"    -headers "$HEADERS"
-    )
-fi
-
-if (( ${#WATCHOS_DEVICE_TARGETS[@]} > 0 )); then
-    WATCHOS_DEVICE_LIB="$BUILD/watchos-device-$ARCHIVE"
-    WATCHOS_SIM_LIB="$BUILD/watchos-sim-$ARCHIVE"
-    build_slice_lib "$WATCHOS_DEVICE_LIB" "${WATCHOS_DEVICE_TARGETS[@]}"
-    build_slice_lib "$WATCHOS_SIM_LIB"    "${WATCHOS_SIM_TARGETS[@]}"
-    XCFRAMEWORK_ARGS+=(
-        -library "$WATCHOS_DEVICE_LIB" -headers "$HEADERS"
-        -library "$WATCHOS_SIM_LIB"    -headers "$HEADERS"
-    )
-fi
-
-if (( ${#VISIONOS_DEVICE_TARGETS[@]} > 0 )); then
-    VISIONOS_DEVICE_LIB="$BUILD/visionos-device-$ARCHIVE"
-    VISIONOS_SIM_LIB="$BUILD/visionos-sim-$ARCHIVE"
-    build_slice_lib "$VISIONOS_DEVICE_LIB" "${VISIONOS_DEVICE_TARGETS[@]}"
-    build_slice_lib "$VISIONOS_SIM_LIB"    "${VISIONOS_SIM_TARGETS[@]}"
-    XCFRAMEWORK_ARGS+=(
-        -library "$VISIONOS_DEVICE_LIB" -headers "$HEADERS"
-        -library "$VISIONOS_SIM_LIB"    -headers "$HEADERS"
-    )
-fi
+build_slice_lib "$MACOS_LIB"          "${MACOS_TARGETS[@]}"
+build_slice_lib "$IOS_DEVICE_LIB"     "${IOS_DEVICE_TARGETS[@]}"
+build_slice_lib "$IOS_SIM_LIB"        "${IOS_SIM_TARGETS[@]}"
+build_slice_lib "$CATALYST_LIB"       "${CATALYST_TARGETS[@]}"
+build_slice_lib "$TVOS_DEVICE_LIB"    "${TVOS_DEVICE_TARGETS[@]}"
+build_slice_lib "$TVOS_SIM_LIB"       "${TVOS_SIM_TARGETS[@]}"
+build_slice_lib "$WATCHOS_DEVICE_LIB" "${WATCHOS_DEVICE_TARGETS[@]}"
+build_slice_lib "$WATCHOS_SIM_LIB"    "${WATCHOS_SIM_TARGETS[@]}"
+build_slice_lib "$VISIONOS_DEVICE_LIB" "${VISIONOS_DEVICE_TARGETS[@]}"
+build_slice_lib "$VISIONOS_SIM_LIB"    "${VISIONOS_SIM_TARGETS[@]}"
 
 XCFRAMEWORK="$BUILD/$FRAMEWORK_NAME.xcframework"
 rm -rf "$XCFRAMEWORK"
 
 echo "==> Assembling $FRAMEWORK_NAME.xcframework"
-xcodebuild -create-xcframework "${XCFRAMEWORK_ARGS[@]}" -output "$XCFRAMEWORK" >/dev/null
+xcodebuild -create-xcframework \
+    -library "$MACOS_LIB"           -headers "$HEADERS" \
+    -library "$IOS_DEVICE_LIB"      -headers "$HEADERS" \
+    -library "$IOS_SIM_LIB"         -headers "$HEADERS" \
+    -library "$CATALYST_LIB"        -headers "$HEADERS" \
+    -library "$TVOS_DEVICE_LIB"     -headers "$HEADERS" \
+    -library "$TVOS_SIM_LIB"        -headers "$HEADERS" \
+    -library "$WATCHOS_DEVICE_LIB"  -headers "$HEADERS" \
+    -library "$WATCHOS_SIM_LIB"     -headers "$HEADERS" \
+    -library "$VISIONOS_DEVICE_LIB" -headers "$HEADERS" \
+    -library "$VISIONOS_SIM_LIB"    -headers "$HEADERS" \
+    -output "$XCFRAMEWORK" >/dev/null
 
 ZIP="$BUILD/$FRAMEWORK_NAME.xcframework.zip"
 rm -f "$ZIP"

@@ -127,21 +127,21 @@ BIGNUM_BUILD_FROM_SOURCE=1 swift test
    ./scripts/build-xcframework.sh
    ```
 
-   By default this cross-compiles the Tier-1/Tier-2 platforms — macOS
-   (arm64+x86_64), iOS device (arm64), iOS simulator (arm64+x86_64), and
-   Mac Catalyst (arm64+x86_64) — assembles them into an XCFramework, zips
-   it, and prints the SHA-256.
+   The script always builds every supported Apple slice — macOS
+   (arm64+x86_64), iOS device (arm64), iOS simulator (arm64+x86_64),
+   Mac Catalyst (arm64+x86_64), tvOS device (arm64), tvOS simulator
+   (arm64+x86_64), watchOS device (arm64), watchOS simulator
+   (arm64+x86_64), visionOS device (arm64), and visionOS simulator
+   (arm64). tvOS / watchOS / visionOS are Tier 3 in Rust, so the script
+   auto-installs the nightly toolchain plus the `rust-src` component via
+   `rustup` and uses `-Z build-std` for those slices. Override the
+   nightly channel with `NIGHTLY_TOOLCHAIN=nightly-YYYY-MM-DD` if a
+   pinned date is needed.
 
-   To include Tier-3 platforms set the corresponding env flag(s); these
-   require a nightly toolchain plus the `rust-src` component (the script
-   installs them via `rustup` on demand):
+   Output: `build/xcframework/CBigNumRustCrypto.xcframework.zip` and a
+   printed SHA-256.
 
-   ```
-   ENABLE_TVOS=1 ENABLE_WATCHOS=1 ENABLE_VISIONOS=1 ./scripts/build-xcframework.sh
-   ```
-
-3. Upload `build/xcframework/CBigNumRustCrypto.xcframework.zip` to the
-   GitHub release for the new tag.
+3. Upload the zip to the GitHub release for the new tag.
 4. Update `Package.swift`'s `xcframeworkURL` and `xcframeworkChecksum` to
    point at the new release URL and the printed checksum, then commit.
 
