@@ -16,8 +16,8 @@ jobs:
     - uses: actions/checkout@v6
       with:
         fetch-depth: 1
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+    - name: Install Rust (pinned by rust/rust-toolchain.toml)
+      uses: dtolnay/rust-toolchain@1.85.0
     - name: Build Rust FFI library
       run: ./scripts/build-rust.sh
     - name: Build
@@ -43,12 +43,14 @@ jobs:
       uses: actions/checkout@v6
       with:
         fetch-depth: 1
-    - name: Install Rust
+    - name: Install Rust (pinned by rust/rust-toolchain.toml)
       run: |
         apt-get -qq update
         apt-get install -y --no-install-recommends curl ca-certificates build-essential
+        # Bootstrap rustup; the rust/rust-toolchain.toml file pins the actual
+        # rustc version, which rustup downloads on first cargo invocation.
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-          | sh -s -- -y --default-toolchain stable --profile minimal
+          | sh -s -- -y --default-toolchain none --profile minimal
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Build Rust FFI library
       run: ./scripts/build-rust.sh
@@ -66,8 +68,8 @@ jobs:
       with:
         branch: swift-6.1-release
         tag: 6.1-RELEASE
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
+    - name: Install Rust (pinned by rust/rust-toolchain.toml)
+      uses: dtolnay/rust-toolchain@1.85.0
     - name: Build Rust FFI library
       shell: pwsh
       run: ./scripts/build-rust.ps1

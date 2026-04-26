@@ -12,10 +12,9 @@
 #                                       watchOS device, watchOS simulator,
 #                                       visionOS device, visionOS simulator
 #
-# The script auto-installs the nightly toolchain and `rust-src` component
-# via `rustup` so callers don't need to set anything up themselves. Override
-# the toolchain channel with `NIGHTLY_TOOLCHAIN=nightly-YYYY-MM-DD` if a
-# specific date is needed.
+# Both toolchains are pinned for reproducibility: stable comes from
+# `rust/rust-toolchain.toml`, and the nightly date is `NIGHTLY_TOOLCHAIN`
+# below. Bump the nightly date deliberately when a Tier-3 target needs it.
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -38,7 +37,11 @@ LIB_NAME="big_num_rustcrypto"
 ARCHIVE="lib${LIB_NAME}.a"
 FRAMEWORK_NAME="CBigNumRustCrypto"
 
-NIGHTLY_TOOLCHAIN="${NIGHTLY_TOOLCHAIN:-nightly}"
+# Pinned nightly date — Tier-3 Apple targets (tvOS / watchOS / visionOS)
+# require nightly + `-Z build-std`, but we want every release to come from
+# the same compiler. Override with `NIGHTLY_TOOLCHAIN=nightly-YYYY-MM-DD`
+# if you need to test a different date.
+NIGHTLY_TOOLCHAIN="${NIGHTLY_TOOLCHAIN:-nightly-2026-03-01}"
 
 # Tier-1 / Tier-2 (work with stock stable rustup).
 MACOS_TARGETS=(aarch64-apple-darwin x86_64-apple-darwin)

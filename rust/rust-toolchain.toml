@@ -1,0 +1,14 @@
+# Pinning the toolchain that compiles the FFI crate keeps every developer,
+# CI runner, and release artifact on the exact same rustc + cargo. Combined
+# with the committed Cargo.lock, the resulting libbig_num_rustcrypto.a is
+# reproducible.
+#
+# 1.85.0 is the MSRV of crypto-bigint 0.7 and crypto-primes 0.7. Bump in
+# lockstep with those crates if a feature requires it.
+#
+# Tier-3 Apple targets (tvOS / watchOS / visionOS) require nightly + the
+# rust-src component to build std from source; that is pinned separately
+# in `scripts/build-xcframework.sh` and is unrelated to this stable pin.
+[toolchain]
+channel = "1.85.0"
+profile = "minimal"

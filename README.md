@@ -63,6 +63,15 @@ A hashed version of S can be sent back to the server and the server can use that
 
 ## Building
 
+The Rust toolchain that compiles the FFI crate is pinned via
+`rust/rust-toolchain.toml` (currently `1.85.0`, the MSRV of `crypto-bigint`
+0.7 / `crypto-primes` 0.7). `rustup` reads that file the first time `cargo`
+is invoked inside `rust/` and downloads the exact version, so every
+contributor and every CI run uses the same compiler. The XCFramework
+release script pins its nightly toolchain separately
+(`NIGHTLY_TOOLCHAIN` near the top of `scripts/build-xcframework.sh`),
+needed only for tvOS / watchOS / visionOS slices.
+
 ### Apple platforms (consumers)
 
 `Package.swift` consumes a pre-built `CBigNumRustCrypto.xcframework` via a

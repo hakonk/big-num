@@ -8,10 +8,13 @@ RUN apt-get -qq update \
 ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH
+# Bootstrap rustup with no default toolchain — the actual rustc version
+# comes from rust/rust-toolchain.toml on first cargo invocation, so the
+# resulting image is reproducible regardless of when it's built.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-  | sh -s -- -y --default-toolchain stable --profile minimal
+  | sh -s -- -y --default-toolchain none --profile minimal
 
 WORKDIR /BigNum
 COPY . .
 RUN ./scripts/build-rust.sh \
- && swift test
+ && BIGNUM_BUILD_FROM_SOURCE=1 swift test
