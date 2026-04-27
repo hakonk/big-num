@@ -11,25 +11,30 @@ on:
 
 jobs:
   macOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [rustcrypto, boringssl]
     runs-on: macOS-latest
+    env:
+      BIGNUM_BACKEND: ${{ matrix.backend }}
+      BIGNUM_BUILD_FROM_SOURCE: "1"
     steps:
     - uses: actions/checkout@v6
       with:
         fetch-depth: 1
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
+      if: matrix.backend == 'rustcrypto'
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
           | sh -s -- -y --default-toolchain none --profile minimal
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Build Rust FFI library
+      if: matrix.backend == 'rustcrypto'
       run: ./scripts/build-rust.sh
     - name: Build
-      env:
-        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift build
     - name: Run tests
-      env:
-        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift test
 
   linux:
@@ -38,15 +43,19 @@ jobs:
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
         tag: ['6.1', '6.2']
+        backend: [rustcrypto, boringssl]
     runs-on: ${{ matrix.runner }}
     container:
       image: swift:${{ matrix.tag }}
+    env:
+      BIGNUM_BACKEND: ${{ matrix.backend }}
     steps:
     - name: Checkout
       uses: actions/checkout@v6
       with:
         fetch-depth: 1
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
+      if: matrix.backend == 'rustcrypto'
       run: |
         apt-get -qq update
         apt-get install -y --no-install-recommends curl ca-certificates build-essential
@@ -56,12 +65,20 @@ jobs:
           | sh -s -- -y --default-toolchain none --profile minimal
         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Build Rust FFI library
+      if: matrix.backend == 'rustcrypto'
       run: ./scripts/build-rust.sh
     - name: Test
       run: swift test
 
   windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [rustcrypto, boringssl]
     runs-on: windows-latest
+    env:
+      BIGNUM_BACKEND: ${{ matrix.backend }}
+      BIGNUM_BUILD_FROM_SOURCE: "1"
     steps:
     - uses: actions/checkout@v6
       with:
@@ -101,6 +118,7 @@ jobs:
           "$($_.Name)=$($_.Value)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         }
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
+      if: matrix.backend == 'rustcrypto'
       shell: pwsh
       run: |
         Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 `
@@ -108,10 +126,9 @@ jobs:
         & $env:RUNNER_TEMP\rustup-init.exe -y --default-toolchain none --profile minimal
         Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.cargo\bin"
     - name: Build Rust FFI library
+      if: matrix.backend == 'rustcrypto'
       shell: pwsh
       run: ./scripts/build-rust.ps1
     - name: Test
       shell: pwsh
-      env:
-        BIGNUM_BUILD_FROM_SOURCE: "1"
       run: swift test

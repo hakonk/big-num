@@ -13,20 +13,27 @@ let defaultSwiftSettings: [SwiftSetting] =
         .enableUpcomingFeature("MemberImportVisibility"),
     ]
 
-// MARK: - CBigNumRustCrypto target selection
+// MARK: - Backend selection
 //
-// Apple platforms get a pre-built XCFramework (downloaded from a GitHub
-// release, integrity-verified by SwiftPM via the SHA-256 in `checksum:`).
-// Linux falls back to building the Rust crate from source via
-// `scripts/build-rust.sh` and linking the resulting static archive.
+// `BigNum` ships with two interchangeable C/Rust backends. Pick one with the
+// `BIGNUM_BACKEND` environment variable when invoking SwiftPM:
 //
-// Set `BIGNUM_BUILD_FROM_SOURCE=1` when invoking `swift build`/`swift test`
-// to opt into source builds on Apple too — useful when iterating on the FFI
-// before cutting a release.
+//   BIGNUM_BACKEND=rustcrypto   (default)  RustCrypto's crypto-bigint via FFI
+//   BIGNUM_BACKEND=boringssl              vendored cut-down BoringSSL BIGNUM
+//
+// The two backends expose the same public Swift API; the choice only affects
+// what gets compiled, downloaded, and linked. Mixing both in a single build
+// is unsupported.
 
 let env = ProcessInfo.processInfo.environment
-let forceSource = env["BIGNUM_BUILD_FROM_SOURCE"] == "1"
+let backend = env["BIGNUM_BACKEND"]?.lowercased() ?? "rustcrypto"
 
+guard ["rustcrypto", "boringssl"].contains(backend) else {
+    fatalError("Unknown BIGNUM_BACKEND: \(backend); use 'rustcrypto' or 'boringssl'")
+}
+
+// MARK: RustCrypto-specific knobs (ignored when backend == "boringssl")
+let forceSource = env["BIGNUM_BUILD_FROM_SOURCE"] == "1"
 #if canImport(Darwin)
 let canUseBinary = !forceSource
 #else
@@ -40,28 +47,46 @@ let xcframeworkURL =
 let xcframeworkChecksum =
     "REPLACE_WITH_SHA256_FROM_BUILD_XCFRAMEWORK_SH"
 
-let cTarget: Target
-let bigNumLinkerSettings: [LinkerSetting]
+// MARK: Per-backend target configuration
 
-if canUseBinary {
-    cTarget = .binaryTarget(
-        name: "CBigNumRustCrypto",
-        url: xcframeworkURL,
-        checksum: xcframeworkChecksum
-    )
-    // The XCFramework already bundles the Rust static archive; SwiftPM links
-    // it for us when the BigNum target depends on `CBigNumRustCrypto`.
+let backendTarget: Target
+let bigNumDependencies: [Target.Dependency]
+let bigNumLinkerSettings: [LinkerSetting]
+let bigNumSwiftSettings: [SwiftSetting]
+
+switch backend {
+case "rustcrypto":
+    if canUseBinary {
+        backendTarget = .binaryTarget(
+            name: "CBigNumRustCrypto",
+            url: xcframeworkURL,
+            checksum: xcframeworkChecksum
+        )
+        bigNumLinkerSettings = []
+    } else {
+        backendTarget = .target(
+            name: "CBigNumRustCrypto",
+            publicHeadersPath: "include"
+        )
+        bigNumLinkerSettings = [
+            .unsafeFlags(["-L", "rust/target/release"]),
+            .linkedLibrary("big_num_rustcrypto"),
+        ]
+    }
+    bigNumDependencies = ["CBigNumRustCrypto"]
+    bigNumSwiftSettings = defaultSwiftSettings + [.define("BIGNUM_BACKEND_RUSTCRYPTO")]
+
+case "boringssl":
+    backendTarget = .target(name: "CBigNumBoringSSL")
+    bigNumDependencies = ["CBigNumBoringSSL"]
     bigNumLinkerSettings = []
-} else {
-    cTarget = .target(
-        name: "CBigNumRustCrypto",
-        publicHeadersPath: "include"
-    )
-    bigNumLinkerSettings = [
-        .unsafeFlags(["-L", "rust/target/release"]),
-        .linkedLibrary("big_num_rustcrypto"),
-    ]
+    bigNumSwiftSettings = defaultSwiftSettings + [.define("BIGNUM_BACKEND_BORINGSSL")]
+
+default:
+    fatalError("unreachable")
 }
+
+let testLinkerSettings: [LinkerSetting] = bigNumLinkerSettings
 
 let package = Package(
     name: "big-num",
@@ -72,15 +97,15 @@ let package = Package(
     targets: [
         .target(
             name: "BigNum",
-            dependencies: ["CBigNumRustCrypto"],
-            swiftSettings: defaultSwiftSettings,
+            dependencies: bigNumDependencies,
+            swiftSettings: bigNumSwiftSettings,
             linkerSettings: bigNumLinkerSettings
         ),
-        cTarget,
+        backendTarget,
         .testTarget(
             name: "BigNumTests",
             dependencies: ["BigNum"],
-            linkerSettings: bigNumLinkerSettings
+            linkerSettings: testLinkerSettings
         ),
     ]
 )

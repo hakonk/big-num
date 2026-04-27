@@ -1,10 +1,15 @@
 ///
-/// BigNum.swift
+/// BigNum+RustCrypto.swift
 /// A Swift wrapper around the Rust `big_num_rustcrypto` crate, which exposes a
 /// BoringSSL-BIGNUM-style API backed by RustCrypto's `crypto-bigint` and
 /// `crypto-primes`.
 /// Originally inspired by https://github.com/Bouke/Bignum
 ///
+/// This file is compiled only when the `BIGNUM_BACKEND_RUSTCRYPTO` Swift
+/// define is set; see Package.swift for the env-var-driven selection.
+///
+
+#if BIGNUM_BACKEND_RUSTCRYPTO
 
 internal import CBigNumRustCrypto
 
@@ -290,3 +295,5 @@ extension BigNum {
 
 /// TODO: Remove this when we move to the next major version
 extension BigNum: @unchecked Sendable {}
+
+#endif  // BIGNUM_BACKEND_RUSTCRYPTO
