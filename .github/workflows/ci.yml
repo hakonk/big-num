@@ -67,10 +67,39 @@ jobs:
       with:
         fetch-depth: 1
     - name: Install Swift
-      uses: compnerd/gha-setup-swift@main
-      with:
-        branch: swift-6.1-release
-        tag: 6.1-RELEASE
+      shell: pwsh
+      run: |
+        # Swift Windows installer URL pattern (see swift.org/install/windows).
+        $swiftVersion = 'swift-6.1-release'
+        $swiftBuild   = '6.1-RELEASE'
+        $url = "https://download.swift.org/$swiftVersion/windows10/swift-$swiftBuild/swift-$swiftBuild-windows10.exe"
+        $installer = Join-Path $env:RUNNER_TEMP 'swift-installer.exe'
+        Invoke-WebRequest -UseBasicParsing $url -OutFile $installer
+
+        $logPath = Join-Path $env:RUNNER_TEMP 'swift-install.log'
+        $proc = Start-Process -FilePath $installer `
+          -ArgumentList @('/quiet', '/log', "`"$logPath`"") `
+          -Wait -PassThru -Verb RunAs
+        if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+          Get-Content $logPath -ErrorAction SilentlyContinue
+          throw "Swift installer exited with code $($proc.ExitCode)"
+        }
+
+        # The installer sets PATH/SDKROOT/DEVELOPER_DIR etc. in the Machine
+        # and User environment scopes; propagate them into the running job's
+        # environment so subsequent steps see swift.exe + runtime DLLs.
+        foreach ($level in 'Machine','User') {
+          [Environment]::GetEnvironmentVariables($level).GetEnumerator() | ForEach-Object {
+            if ($_.Name -eq 'Path') {
+              $_.Value = ("$env:Path;$($_.Value)" -Split ';' | Select-Object -Unique) -Join ';'
+            }
+            $_
+          } | Set-Content -Path { "Env:$($_.Name)" }
+        }
+        "$env:Path" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        Get-ChildItem Env: | ForEach-Object {
+          "$($_.Name)=$($_.Value)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        }
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
       shell: pwsh
       run: |
