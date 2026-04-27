@@ -17,7 +17,10 @@ jobs:
       with:
         fetch-depth: 1
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
-      uses: dtolnay/rust-toolchain@1.85.0
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+          | sh -s -- -y --default-toolchain none --profile minimal
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
     - name: Build Rust FFI library
       run: ./scripts/build-rust.sh
     - name: Build
@@ -69,7 +72,12 @@ jobs:
         branch: swift-6.1-release
         tag: 6.1-RELEASE
     - name: Install Rust (pinned by rust/rust-toolchain.toml)
-      uses: dtolnay/rust-toolchain@1.85.0
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -UseBasicParsing https://win.rustup.rs/x86_64 `
+          -OutFile $env:RUNNER_TEMP\rustup-init.exe
+        & $env:RUNNER_TEMP\rustup-init.exe -y --default-toolchain none --profile minimal
+        Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.cargo\bin"
     - name: Build Rust FFI library
       shell: pwsh
       run: ./scripts/build-rust.ps1
