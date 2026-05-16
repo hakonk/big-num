@@ -1,0 +1,4 @@
+module CBigNumBoringSSL {
+    header "CBigNumBoringSSL.h"
+    export *
+}

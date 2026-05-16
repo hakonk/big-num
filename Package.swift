@@ -30,5 +30,6 @@ let package = Package(
         ),
         .target(name: "CBigNumBoringSSL"),
         .testTarget(name: "BigNumTests", dependencies: ["BigNum"]),
-    ]
+    ],
+    cxxLanguageStandard: .cxx17
 )
