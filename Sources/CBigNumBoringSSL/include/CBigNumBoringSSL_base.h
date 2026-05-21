@@ -16,11 +16,6 @@
 #define OPENSSL_HEADER_BASE_H
 
 #define BORINGSSL_PREFIX CBigNumBoringSSL
-// Force the macro-based (#define) prefixing path in prefix_symbols.h so that
-// Swift's Clang importer sees fully-prefixed function names. Without this,
-// clang selects the `#pragma redefine_extname` path, which only renames
-// symbols at link time -- Swift would then call unprefixed names that don't
-// exist in the built library.
 #undef __PRAGMA_REDEFINE_EXTNAME
 #if defined(_WIN32) && (defined(__x86_64) || defined(_M_AMD64) || defined(_M_X64) || defined(__x86) || defined(__i386) || defined(__i386__) || defined(_M_IX86))
 #define OPENSSL_NO_ASM

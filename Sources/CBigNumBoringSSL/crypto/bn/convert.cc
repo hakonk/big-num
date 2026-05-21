@@ -21,7 +21,6 @@
 
 #include <algorithm>
 
-#include <CBigNumBoringSSL_bio.h>
 #include <CBigNumBoringSSL_bytestring.h>
 #include <CBigNumBoringSSL_err.h>
 #include <CBigNumBoringSSL_mem.h>
@@ -275,41 +274,7 @@ int BN_asc2bn(BIGNUM **outp, const char *in) {
   return 1;
 }
 
-int BN_print(BIO *bp, const BIGNUM *a) {
-  if (a->neg && BIO_write(bp, "-", 1) != 1) {
-    return 0;
-  }
 
-  if (BN_is_zero(a) && BIO_write(bp, "0", 1) != 1) {
-    return 0;
-  }
-
-  int z = 0;
-  for (int i = bn_minimal_width(a) - 1; i >= 0; i--) {
-    for (int j = BN_BITS2 - 4; j >= 0; j -= 4) {
-      // strip leading zeros
-      int v = ((int)(a->d[i] >> (long)j)) & 0x0f;
-      if (z || v != 0) {
-        if (BIO_write(bp, &hextable[v], 1) != 1) {
-          return 0;
-        }
-        z = 1;
-      }
-    }
-  }
-  return 1;
-}
-
-int BN_print_fp(FILE *fp, const BIGNUM *a) {
-  BIO *b = BIO_new_fp(fp, BIO_NOCLOSE);
-  if (b == nullptr) {
-    return 0;
-  }
-
-  int ret = BN_print(b, a);
-  BIO_free(b);
-  return ret;
-}
 
 
 size_t BN_bn2mpi(const BIGNUM *in, uint8_t *out) {
