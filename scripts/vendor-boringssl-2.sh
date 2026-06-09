@@ -76,7 +76,8 @@ BORINGSSL_REVISION="$(cd "${SRCROOT}" && git rev-parse HEAD)"
 echo "BoringSSL revision: ${BORINGSSL_REVISION}"
 
 echo "REMOVING any previously-vendored BoringSSL code"
-rm -rf "${DSTROOT}/include" "${DSTROOT}/crypto" "${DSTROOT}/gen" "${DSTROOT}/third_party"
+rm -rf "${DSTROOT}/include" "${DSTROOT}/crypto" "${DSTROOT}/gen" \
+       "${DSTROOT}/third_party" "${DSTROOT}/provenance"
 
 # -----------------------------------------------------------------------------
 # Allowlist: the only files we copy from upstream BoringSSL.
@@ -487,56 +488,106 @@ echo "This directory is derived from BoringSSL cloned from https://boringssl.goo
     > "${DSTROOT}/hash.txt"
 ${SED} -i -e "s|BoringSSL Commit: [0-9a-f]\\+|BoringSSL Commit: ${BORINGSSL_REVISION}|" "${HERE}/Package.swift" 2>/dev/null || true
 
-# Provenance: for every vendored file, record where it came from in upstream.
-# This is what the verifier uses to independently reconstruct each file from
-# a fresh BoringSSL clone without trusting this script.
-echo "GENERATING PROVENANCE.txt"
-(
-    cd "${DSTROOT}"
-    {
-        echo "# BoringSSL provenance for big-num"
-        echo "# upstream_revision = ${BORINGSSL_REVISION}"
-        echo "# format: <vendored_path>\\t<upstream_path>\\t<transformation>"
-        echo "#"
-        echo "# Transformations:"
-        echo "#   verbatim                = byte-identical to upstream"
-        echo "#   include-rewrite         = #include rewrites only"
-        echo "#   header-rename           = renamed from include/openssl/X.h to include/${PREFIX}_X.h + include-rewrite"
-        echo "#   header-rename+base      = header-rename + injected BORINGSSL_PREFIX + OPENSSL_NO_ASM gates"
-        echo "#   asm-prefix              = include-rewrite + #define BORINGSSL_PREFIX prepended"
-        echo "#   bn-print-stripped       = include-rewrite + BN_print / BN_print_fp removed (BIO dropped)"
-        echo "#   generated               = produced by the vendor script, no upstream source"
-        echo "#"
-        find . -type f \
-            \( -name "*.h" -o -name "*.cc" -o -name "*.S" -o -name "*.cc.inc" -o -name "*.c.inc" -o -name "*.inc" \
-               -o -name "*.modulemap" -o -name "hash.txt" \) \
-            | LC_ALL=C sort \
-            | while read -r f; do
-                rel="${f#./}"
-                case "${rel}" in
-                    include/${PREFIX}.h | include/module.modulemap | hash.txt | crypto/fipsmodule/bn_unity.cc)
-                        printf "%s\t-\tgenerated\n" "${rel}"
-                        ;;
-                    include/${PREFIX}_base.h)
-                        printf "%s\tinclude/openssl/base.h\theader-rename+base\n" "${rel}"
-                        ;;
-                    include/${PREFIX}_*.h)
-                        base="${rel#include/${PREFIX}_}"
-                        printf "%s\tinclude/openssl/%s\theader-rename\n" "${rel}" "${base}"
-                        ;;
-                    crypto/bn/convert.cc)
-                        printf "%s\t%s\tbn-print-stripped\n" "${rel}" "${rel}"
-                        ;;
-                    *.S)
-                        printf "%s\t%s\tasm-prefix\n" "${rel}" "${rel}"
-                        ;;
-                    *)
-                        printf "%s\t%s\tinclude-rewrite\n" "${rel}" "${rel}"
-                        ;;
-                esac
-            done
-    } > PROVENANCE.txt
-)
+# ---------------------------------------------------------------------------
+# Provenance.
+#
+# PROVENANCE.txt is the index: one row per vendored file recording its
+# upstream origin and the transformation applied. For every *modified* file
+# the script also writes a reversible unified diff under
+#   provenance/<vendored_path>.patch
+# Reverse-applying that patch to the vendored file reproduces the upstream
+# original byte-for-byte, so verification does not depend on trusting this
+# script. scripts/verify-provenance.sh checks exactly that.
+# ---------------------------------------------------------------------------
+echo "GENERATING PROVENANCE.txt + provenance/ patches"
+
+# gen_patch <upstream_rel> <vendored_rel>
+# Writes ${DSTROOT}/provenance/<vendored_rel>.patch as the git diff taking the
+# upstream file to the vendored file. Returns 0 if a patch was written, or 1
+# if the two files are byte-identical (caller then records it as "verbatim").
+gen_patch() {
+    local up="$1" vend="$2"
+    local out="${DSTROOT}/provenance/${vend}.patch"
+    local stg
+    stg="$(mktemp -d "${TMPDIR}/patch.XXXXXX")"
+    mkdir -p "${stg}/a/$(dirname "${up}")" "${stg}/b/$(dirname "${vend}")"
+    cp "${SRCROOT}/${up}" "${stg}/a/${up}"
+    cp "${DSTROOT}/${vend}" "${stg}/b/${vend}"
+    mkdir -p "$(dirname "${out}")"
+    # Pinned diff settings keep the output reproducible regardless of the
+    # caller's git config; --no-prefix yields clean "a/<up>" / "b/<vend>"
+    # headers that patch(1) and `git apply` both accept.
+    ( cd "${stg}" \
+        && git -c core.autocrlf=false \
+               -c diff.algorithm=myers \
+               -c diff.indentHeuristic=true \
+               diff --no-index --no-prefix --no-color --unified=3 \
+               "a/${up}" "b/${vend}" ) > "${out}" || true
+    rm -rf "${stg}"
+    [ -s "${out}" ] && return 0
+    rm -f "${out}"
+    return 1
+}
+
+rm -rf "${DSTROOT}/provenance"
+
+# Enumerate vendored files into a list up front, so that creating provenance/
+# during the loop below cannot perturb the file walk.
+LISTFILE="${TMPDIR}/vendored-files.txt"
+( cd "${DSTROOT}" && find . -type f \
+    \( -name "*.h" -o -name "*.cc" -o -name "*.S" -o -name "*.cc.inc" \
+       -o -name "*.c.inc" -o -name "*.inc" -o -name "*.modulemap" \
+       -o -name "hash.txt" \) \
+    | LC_ALL=C sort ) > "${LISTFILE}"
+
+{
+    echo "# BoringSSL provenance for big-num"
+    echo "# upstream_revision = ${BORINGSSL_REVISION}"
+    echo "#"
+    echo "# format: <vendored_path>\\t<upstream_path>\\t<transformation>"
+    echo "#"
+    echo "# Every modified file also has a reversible unified diff at"
+    echo "#   provenance/<vendored_path>.patch"
+    echo "# Reverse-applying it to a copy of the vendored file reproduces the"
+    echo "# upstream original byte-for-byte:"
+    echo "#   patch -R <copy-of-vendored-file> < provenance/<vendored_path>.patch"
+    echo "# scripts/verify-provenance.sh checks the whole tree this way."
+    echo "#"
+    echo "# Transformations:"
+    echo "#   verbatim            = byte-identical to upstream (no patch)"
+    echo "#   include-rewrite     = #include rewrites only"
+    echo "#   header-rename       = renamed include/openssl/X.h -> include/${PREFIX}_X.h + include-rewrite"
+    echo "#   header-rename+base  = header-rename + injected BORINGSSL_PREFIX + OPENSSL_NO_ASM gates"
+    echo "#   asm-prefix          = include-rewrite + #define BORINGSSL_PREFIX prepended"
+    echo "#   bn-print-stripped   = include-rewrite + BN_print / BN_print_fp removed (BIO dropped)"
+    echo "#   generated           = produced by the vendor script, no upstream source (no patch)"
+    echo "#"
+    while read -r f; do
+        rel="${f#./}"
+        case "${rel}" in
+            include/${PREFIX}.h | include/module.modulemap | hash.txt | crypto/fipsmodule/bn_unity.cc)
+                printf "%s\t-\tgenerated\n" "${rel}"
+                continue
+                ;;
+            include/${PREFIX}_base.h)
+                up="include/openssl/base.h" ; xform="header-rename+base" ;;
+            include/${PREFIX}_*.h)
+                up="include/openssl/${rel#include/${PREFIX}_}" ; xform="header-rename" ;;
+            crypto/bn/convert.cc)
+                up="${rel}" ; xform="bn-print-stripped" ;;
+            *.S)
+                up="${rel}" ; xform="asm-prefix" ;;
+            *)
+                up="${rel}" ; xform="include-rewrite" ;;
+        esac
+        if ! gen_patch "${up}" "${rel}"; then
+            xform="verbatim"
+        fi
+        printf "%s\t%s\t%s\n" "${rel}" "${up}" "${xform}"
+    done < "${LISTFILE}"
+} > "${DSTROOT}/PROVENANCE.txt"
+
+echo "  $(find "${DSTROOT}/provenance" -name '*.patch' -type f 2>/dev/null | wc -l | tr -d ' ') provenance patch(es) written"
 
 # Manifest: hashes of every vendored file. Anyone with the committed tree can
 # run `sha256sum -c MANIFEST.sha256` to confirm nothing has been tampered with

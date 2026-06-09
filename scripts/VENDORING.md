@@ -52,6 +52,7 @@ Sources/CBigNumBoringSSL/
 │       ├── bn/, aes/, rand/, sha/, entropy/   # only the .cc.inc bn_unity uses
 │       └── service_indicator/      # internal.h only (stubs inlined into bn_unity.cc)
 ├── gen/                            # only BN/AES/SHA-2 assembly + err_data.cc
+├── provenance/                     # one reversible *.patch per modified file
 ├── hash.txt                        # upstream commit hash
 ├── PROVENANCE.txt                  # per-file mapping back to upstream
 └── MANIFEST.sha256                 # sha256 of every committed file
@@ -253,15 +254,17 @@ one upstream-shipped header.
     `<vendored_path>\t<upstream_path>\t<transformation>` rows, where the
     transformation is one of `verbatim`, `include-rewrite`,
     `header-rename`, `header-rename+base`, `asm-prefix`,
-    `bn-print-stripped`, or `generated`.
+    `bn-print-stripped`, or `generated` — and, for every modified file, a
+    reversible unified diff at `provenance/<vendored_path>.patch`. See
+    [Per-file provenance patches](#per-file-provenance-patches) below.
 14. **Record manifest**: `MANIFEST.sha256` is `sha256sum` over every
     committed file except `MANIFEST.sha256` itself. Anyone can run
     `sha256sum -c MANIFEST.sha256` to confirm the tree hasn't been
     tampered with locally.
 
-Combined, `PROVENANCE.txt` + `MANIFEST.sha256` + this deterministic
-script give end-to-end attestation back to the BoringSSL upstream
-revision in `hash.txt`.
+Combined, `PROVENANCE.txt`, the `provenance/` patches, `MANIFEST.sha256`,
+and this deterministic script give end-to-end attestation back to the
+BoringSSL upstream revision in `hash.txt`.
 
 ## Why we `#undef __PRAGMA_REDEFINE_EXTNAME`
 
@@ -362,16 +365,76 @@ let package = Package(
 
 This is set once at package level rather than per-target.
 
+## Per-file provenance patches
+
+`PROVENANCE.txt` records *what* was done to each file; the `provenance/`
+directory *proves* it. For every file that differs from upstream the
+vendor script writes a reversible unified diff:
+
+```
+Sources/CBigNumBoringSSL/provenance/<vendored_path>.patch
+```
+
+Each patch is the `git diff` taking the pristine upstream file to the
+vendored file. Reverse-applying it to a copy of the vendored file
+reproduces the upstream original byte-for-byte:
+
+```bash
+cd Sources/CBigNumBoringSSL
+cp crypto/bn/div.cc /tmp/div.cc
+patch -R /tmp/div.cc < provenance/crypto/bn/div.cc.patch
+# /tmp/div.cc is now byte-identical to upstream crypto/bn/div.cc
+```
+
+This makes the attestation self-contained: an auditor no longer has to
+trust that a label like `include-rewrite` honestly describes the change
+— the exact change is recorded and mechanically checkable. Two
+transformations carry no patch:
+
+- **`generated`** — `bn_unity.cc`, `CBigNumBoringSSL.h`,
+  `module.modulemap` and `hash.txt` have no upstream original, so there
+  is nothing to diff.
+- **`verbatim`** — the vendored file is already byte-identical to
+  upstream; the script detects the empty diff and writes no patch.
+
+The patches are themselves hashed into `MANIFEST.sha256`, so tampering
+with a patch is caught too.
+
 ## Verifying a vendored tree
 
-From a fresh checkout, in `Sources/CBigNumBoringSSL/`:
+Two independent checks, strongest first.
+
+### 1. Integrity against upstream — `scripts/verify-provenance.sh`
+
+This is the end-to-end check, and it never trusts the vendor script. It:
+
+1. confirms local integrity with `sha256sum -c MANIFEST.sha256`;
+2. clones BoringSSL at the revision recorded in `PROVENANCE.txt`;
+3. for every modified file, reverse-applies its `provenance/*.patch` to
+   the vendored copy and asserts the result is byte-identical to the
+   upstream original;
+4. checks `verbatim` files against upstream directly, and that every
+   patch maps to a `PROVENANCE.txt` row.
+
+```bash
+scripts/verify-provenance.sh                       # clones upstream itself
+scripts/verify-provenance.sh -p /path/to/boringssl # reuse an existing clone
+```
+
+A non-zero exit means some vendored file deviates from upstream beyond
+its recorded patch. Requires `git`, `patch`, `sha256sum`, and `cmp`.
+
+### 2. Local integrity only — `MANIFEST.sha256`
+
+From `Sources/CBigNumBoringSSL/`:
 
 ```bash
 sha256sum -c MANIFEST.sha256   # every file matches its recorded hash
 ```
 
-To verify the tree against upstream, you can independently re-run
-`vendor-boringssl-2.sh` against the revision in `hash.txt`; the result
-should be byte-identical to what's committed (modulo `MANIFEST.sha256`
-itself, which is recomputed on each run from the same inputs and should
-therefore also match).
+This proves nothing changed since vendoring but says nothing about the
+relationship to upstream — use it as a fast pre-check.
+
+You can also independently re-run `vendor-boringssl-2.sh` against the
+revision in `hash.txt`; the result should be byte-identical to what's
+committed (modulo `MANIFEST.sha256` itself, recomputed on each run).

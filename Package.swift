@@ -28,7 +28,11 @@ let package = Package(
             dependencies: ["CBigNumBoringSSL"],
             swiftSettings: defaultSwiftSettings
         ),
-        .target(name: "CBigNumBoringSSL"),
+        .target(
+            name: "CBigNumBoringSSL",
+            // Provenance patches are attestation metadata, not build inputs.
+            exclude: ["provenance"]
+        ),
         .testTarget(name: "BigNumTests", dependencies: ["BigNum"]),
     ],
     cxxLanguageStandard: .cxx17
