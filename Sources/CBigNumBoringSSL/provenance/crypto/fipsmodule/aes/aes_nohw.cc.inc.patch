@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/aes/aes_nohw.cc.inc b/crypto/fipsmodule/aes/aes_nohw.cc.inc
+index 20f6a6b..7e6d5b2 100644
+--- a/crypto/fipsmodule/aes/aes_nohw.cc.inc
++++ b/crypto/fipsmodule/aes/aes_nohw.cc.inc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/aes.h>
++#include <CBigNumBoringSSL_aes.h>
+ 
+ #include <assert.h>
+ #include <string.h>

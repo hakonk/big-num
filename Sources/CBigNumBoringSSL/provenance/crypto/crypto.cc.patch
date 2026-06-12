@@ -1,0 +1,13 @@
+diff --git a/crypto/crypto.cc b/crypto/crypto.cc
+index 28b5f54..2355156 100644
+--- a/crypto/crypto.cc
++++ b/crypto/crypto.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/crypto.h>
++#include <CBigNumBoringSSL_crypto.h>
+ 
+ #include <assert.h>
+ #include <stdio.h>

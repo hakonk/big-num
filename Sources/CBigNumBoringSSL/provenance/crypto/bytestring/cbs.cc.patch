@@ -1,0 +1,17 @@
+diff --git a/crypto/bytestring/cbs.cc b/crypto/bytestring/cbs.cc
+index dbaa3e8..d4355b9 100644
+--- a/crypto/bytestring/cbs.cc
++++ b/crypto/bytestring/cbs.cc
+@@ -12,9 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/asn1.h>
+-#include <openssl/bytestring.h>
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_asn1.h>
++#include <CBigNumBoringSSL_bytestring.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include <assert.h>
+ #include <ctype.h>

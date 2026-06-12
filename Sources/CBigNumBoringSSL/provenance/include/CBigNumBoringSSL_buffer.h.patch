@@ -1,0 +1,10 @@
+diff --git a/include/openssl/buffer.h b/include/CBigNumBoringSSL_buffer.h
+index bf6a0f5..b75311a 100644
+--- a/include/openssl/buffer.h
++++ b/include/CBigNumBoringSSL_buffer.h
+@@ -15,4 +15,4 @@
+ /* This header is provided in order to make compiling against code that expects
+    OpenSSL easier. */
+ 
+-#include "buf.h"
++#include "CBigNumBoringSSL_buf.h"

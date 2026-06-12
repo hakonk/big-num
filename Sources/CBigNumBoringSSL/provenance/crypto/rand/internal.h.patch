@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/internal.h b/crypto/rand/internal.h
+index 50dbf0b..5e157ab 100644
+--- a/crypto/rand/internal.h
++++ b/crypto/rand/internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_RAND_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_RAND_INTERNAL_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ 
+ #if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)

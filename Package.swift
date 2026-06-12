@@ -17,9 +17,6 @@ let package = Package(
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(name: "BigNum", targets: ["BigNum"])
-        /* This target is used only for symbol mangling. It's added and removed automatically because it emits build warnings. MANGLE_START
-            .library(name: "CBigNumBoringSSL", type: .static, targets: ["CBigNumBoringSSL"]),
-            MANGLE_END */
     ],
     dependencies: [],
     targets: [
@@ -28,6 +25,9 @@ let package = Package(
             dependencies: ["CBigNumBoringSSL"],
             swiftSettings: defaultSwiftSettings
         ),
+        // Vendored by scripts/vendor-boringssl-2.sh; the stamp below is
+        // rewritten by the script on each re-vendor.
+        // BoringSSL Commit: d589045a772678d5ca131f4c8087d001b9258380
         .target(
             name: "CBigNumBoringSSL",
             // Provenance patches are attestation metadata, not build inputs.

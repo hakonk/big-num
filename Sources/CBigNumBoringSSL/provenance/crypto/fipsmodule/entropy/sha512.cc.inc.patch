@@ -1,0 +1,15 @@
+diff --git a/crypto/fipsmodule/entropy/sha512.cc.inc b/crypto/fipsmodule/entropy/sha512.cc.inc
+index 53512a8..fc9fc6b 100644
+--- a/crypto/fipsmodule/entropy/sha512.cc.inc
++++ b/crypto/fipsmodule/entropy/sha512.cc.inc
+@@ -15,8 +15,8 @@
+ #include <stdint.h>
+ #include <string.h>
+ 
+-#include <openssl/base.h>
+-#include <openssl/sha2.h>
++#include <CBigNumBoringSSL_base.h>
++#include <CBigNumBoringSSL_sha2.h>
+ 
+ 
+ // This is a copy of the SHA-384 code for the purpose of isolating the jitter

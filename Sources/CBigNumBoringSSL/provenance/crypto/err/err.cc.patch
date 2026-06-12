@@ -1,0 +1,22 @@
+diff --git a/crypto/err/err.cc b/crypto/err/err.cc
+index b3fe316..c49594e 100644
+--- a/crypto/err/err.cc
++++ b/crypto/err/err.cc
+@@ -14,7 +14,7 @@
+ 
+ // Ensure we can't call OPENSSL_malloc circularly.
+ #define _BORINGSSL_PROHIBIT_OPENSSL_MALLOC
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include <assert.h>
+ #include <errno.h>
+@@ -27,7 +27,7 @@
+ #include <windows.h>
+ #endif
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "../internal.h"
+ #include "./internal.h"

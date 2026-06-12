@@ -1,0 +1,40 @@
+name: BoringSSL upstream watch
+
+# Monthly forcing function for re-vendoring: fails when upstream commits have
+# touched any path we vendor since the pinned revision. Intentionally noisy —
+# vendored crypto must not go stale silently. Re-vendoring with
+# scripts/vendor-boringssl-2.sh resets it. Narrow the path list below if the
+# signal proves too chatty (include/openssl churns on every prefix_symbols
+# regeneration).
+
+on:
+  schedule:
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+    - name: Check for upstream changes to vendored paths
+      run: |
+        git clone --filter=blob:none https://boringssl.googlesource.com/boringssl /tmp/boringssl
+        PINNED=$(awk '/^# upstream_revision/ {print $NF}' Sources/CBigNumBoringSSL/PROVENANCE.txt)
+        echo "Pinned revision: ${PINNED}"
+        cd /tmp/boringssl
+        PATHS=(
+          crypto/bn crypto/bytestring crypto/err crypto/rand
+          crypto/fipsmodule/aes crypto/fipsmodule/bn crypto/fipsmodule/entropy
+          crypto/fipsmodule/rand crypto/fipsmodule/sha
+          gen/bcm gen/crypto include/openssl
+        )
+        N=$(git rev-list --count "${PINNED}..origin/main" -- "${PATHS[@]}")
+        if [ "${N}" -gt 0 ]; then
+          echo "::error::${N} upstream commit(s) touch vendored paths since ${PINNED} — re-vendor with scripts/vendor-boringssl-2.sh"
+          git log --oneline "${PINNED}..origin/main" -- "${PATHS[@]}" | head -30
+          exit 1
+        fi
+        echo "Vendored tree is current with upstream main for all vendored paths."

@@ -1,0 +1,16 @@
+diff --git a/crypto/bn/div.cc b/crypto/bn/div.cc
+index 824ab75..796267e 100644
+--- a/crypto/bn/div.cc
++++ b/crypto/bn/div.cc
+@@ -12,9 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include "../fipsmodule/bn/internal.h"
+ #include "../internal.h"

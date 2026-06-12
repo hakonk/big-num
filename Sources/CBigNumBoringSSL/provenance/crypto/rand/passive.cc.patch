@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/passive.cc b/crypto/rand/passive.cc
+index a791ec0..4c593a9 100644
+--- a/crypto/rand/passive.cc
++++ b/crypto/rand/passive.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/ctrdrbg.h>
++#include <CBigNumBoringSSL_ctrdrbg.h>
+ 
+ #include "../bcm_support.h"
+ #include "../fipsmodule/bcm_interface.h"

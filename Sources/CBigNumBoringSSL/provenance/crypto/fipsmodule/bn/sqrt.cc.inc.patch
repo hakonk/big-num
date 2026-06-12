@@ -1,0 +1,16 @@
+diff --git a/crypto/fipsmodule/bn/sqrt.cc.inc b/crypto/fipsmodule/bn/sqrt.cc.inc
+index 3080440..d8c7065 100644
+--- a/crypto/fipsmodule/bn/sqrt.cc.inc
++++ b/crypto/fipsmodule/bn/sqrt.cc.inc
+@@ -12,9 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include "internal.h"
+ 

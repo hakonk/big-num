@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_aarch64_sysreg.cc b/crypto/cpu_aarch64_sysreg.cc
+index 770be1a..bd28f87 100644
+--- a/crypto/cpu_aarch64_sysreg.cc
++++ b/crypto/cpu_aarch64_sysreg.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/cpu.h>
++#include <CBigNumBoringSSL_cpu.h>
+ 
+ #include "internal.h"
+ 

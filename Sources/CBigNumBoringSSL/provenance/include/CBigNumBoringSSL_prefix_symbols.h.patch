@@ -1,0 +1,13 @@
+diff --git a/include/openssl/prefix_symbols.h b/include/CBigNumBoringSSL_prefix_symbols.h
+index 275827f..2c5a2ce 100644
+--- a/include/openssl/prefix_symbols.h
++++ b/include/CBigNumBoringSSL_prefix_symbols.h
+@@ -19,7 +19,7 @@
+ #ifndef OPENSSL_HEADER_PREFIX_SYMBOLS_H
+ #define OPENSSL_HEADER_PREFIX_SYMBOLS_H
+ 
+-#include <openssl/opensslconf.h>  // For BORINGSSL_ALWAYS_USE_STATIC_INLINE.
++#include "CBigNumBoringSSL_opensslconf.h"  // For BORINGSSL_ALWAYS_USE_STATIC_INLINE.
+ 
+ 
+ #if defined(BORINGSSL_PREFIX)

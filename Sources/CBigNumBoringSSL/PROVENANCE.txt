@@ -1,15 +1,23 @@
 # BoringSSL provenance for big-num
 # upstream_revision = d589045a772678d5ca131f4c8087d001b9258380
+#
 # format: <vendored_path>\t<upstream_path>\t<transformation>
 #
+# Every modified file also has a reversible unified diff at
+#   provenance/<vendored_path>.patch
+# Reverse-applying it to a copy of the vendored file reproduces the
+# upstream original byte-for-byte:
+#   patch -R <copy-of-vendored-file> < provenance/<vendored_path>.patch
+# scripts/verify-provenance.sh checks the whole tree this way.
+#
 # Transformations:
-#   verbatim                = byte-identical to upstream
-#   include-rewrite         = #include rewrites only
-#   header-rename           = renamed from include/openssl/X.h to include/CBigNumBoringSSL_X.h + include-rewrite
-#   header-rename+base      = header-rename + injected BORINGSSL_PREFIX + OPENSSL_NO_ASM gates
-#   asm-prefix              = include-rewrite + #define BORINGSSL_PREFIX prepended
-#   bn-print-stripped       = include-rewrite + BN_print / BN_print_fp removed (BIO dropped)
-#   generated               = produced by the vendor script, no upstream source
+#   verbatim            = byte-identical to upstream (no patch)
+#   include-rewrite     = #include rewrites only
+#   header-rename       = renamed include/openssl/X.h -> include/CBigNumBoringSSL_X.h + include-rewrite
+#   header-rename+base  = header-rename + injected BORINGSSL_PREFIX + OPENSSL_NO_ASM gates
+#   asm-prefix          = include-rewrite + #define BORINGSSL_PREFIX prepended
+#   bn-print-stripped   = include-rewrite + BN_print / BN_print_fp removed (BIO dropped)
+#   generated           = produced by the vendor script, no upstream source (no patch)
 #
 crypto/armv8_feature_parsing.h	crypto/armv8_feature_parsing.h	include-rewrite
 crypto/asn1/internal.h	crypto/asn1/internal.h	include-rewrite
@@ -22,12 +30,12 @@ crypto/bn/sqrt.cc	crypto/bn/sqrt.cc	include-rewrite
 crypto/bytestring/cbb.cc	crypto/bytestring/cbb.cc	include-rewrite
 crypto/bytestring/cbs.cc	crypto/bytestring/cbs.cc	include-rewrite
 crypto/bytestring/internal.h	crypto/bytestring/internal.h	include-rewrite
-crypto/cpu_aarch64_apple.cc	crypto/cpu_aarch64_apple.cc	include-rewrite
-crypto/cpu_aarch64_fuchsia.cc	crypto/cpu_aarch64_fuchsia.cc	include-rewrite
-crypto/cpu_aarch64_linux.cc	crypto/cpu_aarch64_linux.cc	include-rewrite
+crypto/cpu_aarch64_apple.cc	crypto/cpu_aarch64_apple.cc	verbatim
+crypto/cpu_aarch64_fuchsia.cc	crypto/cpu_aarch64_fuchsia.cc	verbatim
+crypto/cpu_aarch64_linux.cc	crypto/cpu_aarch64_linux.cc	verbatim
 crypto/cpu_aarch64_openbsd.cc	crypto/cpu_aarch64_openbsd.cc	include-rewrite
 crypto/cpu_aarch64_sysreg.cc	crypto/cpu_aarch64_sysreg.cc	include-rewrite
-crypto/cpu_aarch64_win.cc	crypto/cpu_aarch64_win.cc	include-rewrite
+crypto/cpu_aarch64_win.cc	crypto/cpu_aarch64_win.cc	verbatim
 crypto/cpu_arm_freebsd.cc	crypto/cpu_arm_freebsd.cc	include-rewrite
 crypto/cpu_arm_linux.cc	crypto/cpu_arm_linux.cc	include-rewrite
 crypto/cpu_arm_linux.h	crypto/cpu_arm_linux.h	include-rewrite
@@ -35,9 +43,9 @@ crypto/cpu_intel.cc	crypto/cpu_intel.cc	include-rewrite
 crypto/crypto.cc	crypto/crypto.cc	include-rewrite
 crypto/err/err.cc	crypto/err/err.cc	include-rewrite
 crypto/err/internal.h	crypto/err/internal.h	include-rewrite
-crypto/fipsmodule/aes/aes.cc.inc	crypto/fipsmodule/aes/aes.cc.inc	include-rewrite
+crypto/fipsmodule/aes/aes.cc.inc	crypto/fipsmodule/aes/aes.cc.inc	verbatim
 crypto/fipsmodule/aes/aes_nohw.cc.inc	crypto/fipsmodule/aes/aes_nohw.cc.inc	include-rewrite
-crypto/fipsmodule/aes/internal.h	crypto/fipsmodule/aes/internal.h	include-rewrite
+crypto/fipsmodule/aes/internal.h	crypto/fipsmodule/aes/internal.h	verbatim
 crypto/fipsmodule/bcm_interface.h	crypto/fipsmodule/bcm_interface.h	include-rewrite
 crypto/fipsmodule/bn/add.cc.inc	crypto/fipsmodule/bn/add.cc.inc	include-rewrite
 crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc	crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc	include-rewrite
@@ -68,7 +76,7 @@ crypto/fipsmodule/digest/md32_common.h	crypto/fipsmodule/digest/md32_common.h	in
 crypto/fipsmodule/entropy/internal.h	crypto/fipsmodule/entropy/internal.h	include-rewrite
 crypto/fipsmodule/entropy/jitter.cc.inc	crypto/fipsmodule/entropy/jitter.cc.inc	include-rewrite
 crypto/fipsmodule/entropy/sha512.cc.inc	crypto/fipsmodule/entropy/sha512.cc.inc	include-rewrite
-crypto/fipsmodule/fips_shared_support.cc	crypto/fipsmodule/fips_shared_support.cc	include-rewrite
+crypto/fipsmodule/fips_shared_support.cc	crypto/fipsmodule/fips_shared_support.cc	verbatim
 crypto/fipsmodule/rand/ctrdrbg.cc.inc	crypto/fipsmodule/rand/ctrdrbg.cc.inc	include-rewrite
 crypto/fipsmodule/rand/internal.h	crypto/fipsmodule/rand/internal.h	include-rewrite
 crypto/fipsmodule/rand/rand.cc.inc	crypto/fipsmodule/rand/rand.cc.inc	include-rewrite
@@ -82,7 +90,7 @@ crypto/mem.cc	crypto/mem.cc	include-rewrite
 crypto/mem_internal.h	crypto/mem_internal.h	include-rewrite
 crypto/params_internal.h	crypto/params_internal.h	include-rewrite
 crypto/rand/deterministic.cc	crypto/rand/deterministic.cc	include-rewrite
-crypto/rand/fork_detect.cc	crypto/rand/fork_detect.cc	include-rewrite
+crypto/rand/fork_detect.cc	crypto/rand/fork_detect.cc	verbatim
 crypto/rand/forkunsafe.cc	crypto/rand/forkunsafe.cc	include-rewrite
 crypto/rand/getentropy.cc	crypto/rand/getentropy.cc	include-rewrite
 crypto/rand/internal.h	crypto/rand/internal.h	include-rewrite
@@ -92,11 +100,11 @@ crypto/rand/rand.cc	crypto/rand/rand.cc	include-rewrite
 crypto/rand/trusty.cc	crypto/rand/trusty.cc	include-rewrite
 crypto/rand/urandom.cc	crypto/rand/urandom.cc	include-rewrite
 crypto/rand/windows.cc	crypto/rand/windows.cc	include-rewrite
-crypto/refcount.cc	crypto/refcount.cc	include-rewrite
+crypto/refcount.cc	crypto/refcount.cc	verbatim
 crypto/thread.cc	crypto/thread.cc	include-rewrite
-crypto/thread_none.cc	crypto/thread_none.cc	include-rewrite
-crypto/thread_pthread.cc	crypto/thread_pthread.cc	include-rewrite
-crypto/thread_win.cc	crypto/thread_win.cc	include-rewrite
+crypto/thread_none.cc	crypto/thread_none.cc	verbatim
+crypto/thread_pthread.cc	crypto/thread_pthread.cc	verbatim
+crypto/thread_win.cc	crypto/thread_win.cc	verbatim
 gen/bcm/aesni-x86-apple.S	gen/bcm/aesni-x86-apple.S	asm-prefix
 gen/bcm/aesni-x86-linux.S	gen/bcm/aesni-x86-linux.S	asm-prefix
 gen/bcm/aesni-x86_64-apple.S	gen/bcm/aesni-x86_64-apple.S	asm-prefix
@@ -169,11 +177,11 @@ include/CBigNumBoringSSL_crypto.h	include/openssl/crypto.h	header-rename
 include/CBigNumBoringSSL_ctrdrbg.h	include/openssl/ctrdrbg.h	header-rename
 include/CBigNumBoringSSL_err.h	include/openssl/err.h	header-rename
 include/CBigNumBoringSSL_ex_data.h	include/openssl/ex_data.h	header-rename
-include/CBigNumBoringSSL_is_boringssl.h	include/openssl/is_boringssl.h	header-rename
+include/CBigNumBoringSSL_is_boringssl.h	include/openssl/is_boringssl.h	verbatim
 include/CBigNumBoringSSL_mem.h	include/openssl/mem.h	header-rename
 include/CBigNumBoringSSL_mldsa.h	include/openssl/mldsa.h	header-rename
 include/CBigNumBoringSSL_mlkem.h	include/openssl/mlkem.h	header-rename
-include/CBigNumBoringSSL_opensslconf.h	include/openssl/opensslconf.h	header-rename
+include/CBigNumBoringSSL_opensslconf.h	include/openssl/opensslconf.h	verbatim
 include/CBigNumBoringSSL_posix_time.h	include/openssl/posix_time.h	header-rename
 include/CBigNumBoringSSL_prefix_symbols.h	include/openssl/prefix_symbols.h	header-rename
 include/CBigNumBoringSSL_prefix_symbols_internal_S.h	include/openssl/prefix_symbols_internal_S.h	header-rename
@@ -183,7 +191,7 @@ include/CBigNumBoringSSL_sha.h	include/openssl/sha.h	header-rename
 include/CBigNumBoringSSL_sha2.h	include/openssl/sha2.h	header-rename
 include/CBigNumBoringSSL_span.h	include/openssl/span.h	header-rename
 include/CBigNumBoringSSL_stack.h	include/openssl/stack.h	header-rename
-include/CBigNumBoringSSL_target.h	include/openssl/target.h	header-rename
+include/CBigNumBoringSSL_target.h	include/openssl/target.h	verbatim
 include/CBigNumBoringSSL_thread.h	include/openssl/thread.h	header-rename
 include/CBigNumBoringSSL_type_check.h	include/openssl/type_check.h	header-rename
 include/module.modulemap	-	generated

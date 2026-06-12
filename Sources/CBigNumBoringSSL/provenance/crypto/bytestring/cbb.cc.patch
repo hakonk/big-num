@@ -1,0 +1,22 @@
+diff --git a/crypto/bytestring/cbb.cc b/crypto/bytestring/cbb.cc
+index bbe59fa..588644b 100644
+--- a/crypto/bytestring/cbb.cc
++++ b/crypto/bytestring/cbb.cc
+@@ -12,14 +12,14 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bytestring.h>
++#include <CBigNumBoringSSL_bytestring.h>
+ 
+ #include <assert.h>
+ #include <limits.h>
+ #include <string.h>
+ 
+-#include <openssl/err.h>
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_err.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "../internal.h"
+ #include "internal.h"

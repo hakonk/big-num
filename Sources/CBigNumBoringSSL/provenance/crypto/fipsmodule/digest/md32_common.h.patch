@@ -1,0 +1,15 @@
+diff --git a/crypto/fipsmodule/digest/md32_common.h b/crypto/fipsmodule/digest/md32_common.h
+index 9e237b2..8489bc6 100644
+--- a/crypto/fipsmodule/digest/md32_common.h
++++ b/crypto/fipsmodule/digest/md32_common.h
+@@ -15,8 +15,8 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_DIGEST_MD32_COMMON_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_DIGEST_MD32_COMMON_H
+ 
+-#include <openssl/base.h>
+-#include <openssl/span.h>
++#include <CBigNumBoringSSL_base.h>
++#include <CBigNumBoringSSL_span.h>
+ 
+ #include <assert.h>
+ 

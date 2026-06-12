@@ -1,0 +1,13 @@
+diff --git a/include/openssl/mldsa.h b/include/CBigNumBoringSSL_mldsa.h
+index 3d6b04c..b17ae07 100644
+--- a/include/openssl/mldsa.h
++++ b/include/CBigNumBoringSSL_mldsa.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_MLDSA_H_
+ #define OPENSSL_HEADER_MLDSA_H_
+ 
+-#include <openssl/base.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"  // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

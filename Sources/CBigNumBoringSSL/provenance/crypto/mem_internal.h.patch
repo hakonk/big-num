@@ -1,0 +1,23 @@
+diff --git a/crypto/mem_internal.h b/crypto/mem_internal.h
+index 78c3348..b7b53cc 100644
+--- a/crypto/mem_internal.h
++++ b/crypto/mem_internal.h
+@@ -15,15 +15,15 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_MEM_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_MEM_INTERNAL_H
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include <algorithm>
+ #include <memory>
+ #include <type_traits>
+ #include <utility>
+ 
+-#include <openssl/err.h>
+-#include <openssl/span.h>
++#include <CBigNumBoringSSL_err.h>
++#include <CBigNumBoringSSL_span.h>
+ 
+ #include "internal.h"
+ 

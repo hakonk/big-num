@@ -1,0 +1,22 @@
+diff --git a/crypto/fipsmodule/entropy/jitter.cc.inc b/crypto/fipsmodule/entropy/jitter.cc.inc
+index 77d278b..b3a348f 100644
+--- a/crypto/fipsmodule/entropy/jitter.cc.inc
++++ b/crypto/fipsmodule/entropy/jitter.cc.inc
+@@ -14,7 +14,7 @@
+ 
+ // BoringCrypto Jitter Entropy version 20250725.
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #if defined(OPENSSL_LINUX) || defined(OPENSSL_MACOS)
+ 
+@@ -30,7 +30,7 @@
+ #include <type_traits>
+ #include <utility>
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "internal.h"
+ #include "sha512.cc.inc"

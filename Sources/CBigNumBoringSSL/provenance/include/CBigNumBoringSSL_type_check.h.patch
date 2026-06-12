@@ -1,0 +1,13 @@
+diff --git a/include/openssl/type_check.h b/include/CBigNumBoringSSL_type_check.h
+index 185b765..1ed7d1d 100644
+--- a/include/openssl/type_check.h
++++ b/include/CBigNumBoringSSL_type_check.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_TYPE_CHECK_H
+ #define OPENSSL_HEADER_TYPE_CHECK_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

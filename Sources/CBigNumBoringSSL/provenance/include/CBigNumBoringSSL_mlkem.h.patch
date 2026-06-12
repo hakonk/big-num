@@ -1,0 +1,13 @@
+diff --git a/include/openssl/mlkem.h b/include/CBigNumBoringSSL_mlkem.h
+index 65b4e90..ecae06f 100644
+--- a/include/openssl/mlkem.h
++++ b/include/CBigNumBoringSSL_mlkem.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_MLKEM_H
+ #define OPENSSL_HEADER_MLKEM_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

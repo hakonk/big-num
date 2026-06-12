@@ -1,0 +1,24 @@
+diff --git a/include/openssl/bio.h b/include/CBigNumBoringSSL_bio.h
+index 5c3dda0..ebd7697 100644
+--- a/include/openssl/bio.h
++++ b/include/CBigNumBoringSSL_bio.h
+@@ -15,14 +15,14 @@
+ #ifndef OPENSSL_HEADER_BIO_H
+ #define OPENSSL_HEADER_BIO_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #include <stdio.h>  // For FILE
+ 
+-#include <openssl/buffer.h>
+-#include <openssl/err.h>  // for ERR_print_errors_fp
+-#include <openssl/ex_data.h>
+-#include <openssl/stack.h>
++#include "CBigNumBoringSSL_buffer.h"
++#include "CBigNumBoringSSL_err.h"  // for ERR_print_errors_fp
++#include "CBigNumBoringSSL_ex_data.h"
++#include "CBigNumBoringSSL_stack.h"
+ 
+ #if defined(__cplusplus)
+ extern "C" {

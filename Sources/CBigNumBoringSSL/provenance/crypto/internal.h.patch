@@ -1,0 +1,30 @@
+diff --git a/crypto/internal.h b/crypto/internal.h
+index 7c4b509..1419830 100644
+--- a/crypto/internal.h
++++ b/crypto/internal.h
+@@ -15,11 +15,11 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_INTERNAL_H
+ 
+-#include <openssl/base.h>
+-#include <openssl/crypto.h>
+-#include <openssl/ex_data.h>
+-#include <openssl/span.h>
+-#include <openssl/stack.h>
++#include <CBigNumBoringSSL_base.h>
++#include <CBigNumBoringSSL_crypto.h>
++#include <CBigNumBoringSSL_ex_data.h>
++#include <CBigNumBoringSSL_span.h>
++#include <CBigNumBoringSSL_stack.h>
+ 
+ #include <assert.h>
+ #include <stdlib.h>
+@@ -61,7 +61,7 @@
+ #endif
+ 
+ #if defined(BORINGSSL_PREFIX)
+-#include <openssl/prefix_symbols_internal_c.h>  // IWYU pragma: export
++#include <CBigNumBoringSSL_prefix_symbols_internal_c.h>  // IWYU pragma: export
+ #endif
+ 
+ 

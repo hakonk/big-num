@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_intel.cc b/crypto/cpu_intel.cc
+index 6a406a7..d8f7401 100644
+--- a/crypto/cpu_intel.cc
++++ b/crypto/cpu_intel.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #if !defined(OPENSSL_NO_ASM) && \
+     (defined(OPENSSL_X86) || defined(OPENSSL_X86_64))

@@ -1,0 +1,13 @@
+diff --git a/crypto/params_internal.h b/crypto/params_internal.h
+index 7baa2a8..d9d8cdc 100644
+--- a/crypto/params_internal.h
++++ b/crypto/params_internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_PARAMS_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_PARAMS_INTERNAL_H
+ 
+-#include <openssl/params.h>
++#include <CBigNumBoringSSL_params.h>
+ 
+ 
+ BSSL_NAMESPACE_BEGIN

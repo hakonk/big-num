@@ -1,0 +1,37 @@
+diff --git a/include/openssl/base.h b/include/CBigNumBoringSSL_base.h
+index 961e542..09cd764 100644
+--- a/include/openssl/base.h
++++ b/include/CBigNumBoringSSL_base.h
+@@ -15,6 +15,15 @@
+ #ifndef OPENSSL_HEADER_BASE_H
+ #define OPENSSL_HEADER_BASE_H
+ 
++#define BORINGSSL_PREFIX CBigNumBoringSSL
++#undef __PRAGMA_REDEFINE_EXTNAME
++#if defined(_WIN32) && (defined(__x86_64) || defined(_M_AMD64) || defined(_M_X64) || defined(__x86) || defined(__i386) || defined(__i386__) || defined(_M_IX86))
++#define OPENSSL_NO_ASM
++#endif
++#if defined(__APPLE__) && defined(__i386__)
++#define OPENSSL_NO_ASM
++#endif
++
+ 
+ // This file should be the first included by all BoringSSL headers. All
+ // BoringSSL headers can be assumed to import this file, and this header can be
+@@ -37,12 +46,12 @@
+ // Include a BoringSSL-only header so consumers including this header without
+ // setting up include paths do not accidentally pick up the system
+ // opensslconf.h.
+-#include <openssl/is_boringssl.h>
+-#include <openssl/opensslconf.h>
+-#include <openssl/target.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_is_boringssl.h"
++#include "CBigNumBoringSSL_opensslconf.h"
++#include "CBigNumBoringSSL_target.h"  // IWYU pragma: export
+ 
+ #if defined(BORINGSSL_PREFIX)
+-#include <openssl/prefix_symbols.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_prefix_symbols.h"  // IWYU pragma: export
+ #endif
+ 
+ #if defined(__cplusplus)

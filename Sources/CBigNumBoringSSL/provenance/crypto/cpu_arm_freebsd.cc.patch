@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_arm_freebsd.cc b/crypto/cpu_arm_freebsd.cc
+index 7a8d05b..1201b4e 100644
+--- a/crypto/cpu_arm_freebsd.cc
++++ b/crypto/cpu_arm_freebsd.cc
+@@ -19,7 +19,7 @@
+ #include <sys/auxv.h>
+ #include <sys/types.h>
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ 
+ using namespace bssl;

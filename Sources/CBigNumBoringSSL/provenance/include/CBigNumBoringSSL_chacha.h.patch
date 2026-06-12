@@ -1,0 +1,13 @@
+diff --git a/include/openssl/chacha.h b/include/CBigNumBoringSSL_chacha.h
+index ff9f55e..ad96289 100644
+--- a/include/openssl/chacha.h
++++ b/include/CBigNumBoringSSL_chacha.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CHACHA_H
+ #define OPENSSL_HEADER_CHACHA_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

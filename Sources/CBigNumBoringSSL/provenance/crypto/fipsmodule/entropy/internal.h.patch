@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/entropy/internal.h b/crypto/fipsmodule/entropy/internal.h
+index a9f2a81..88d2b54 100644
+--- a/crypto/fipsmodule/entropy/internal.h
++++ b/crypto/fipsmodule/entropy/internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_ENTROPY_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_ENTROPY_INTERNAL_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #if defined(OPENSSL_LINUX) || defined(OPENSSL_MACOS)
+ 

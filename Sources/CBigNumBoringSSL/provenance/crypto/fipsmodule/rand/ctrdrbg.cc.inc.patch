@@ -1,0 +1,18 @@
+diff --git a/crypto/fipsmodule/rand/ctrdrbg.cc.inc b/crypto/fipsmodule/rand/ctrdrbg.cc.inc
+index 04f5195..64f62b7 100644
+--- a/crypto/fipsmodule/rand/ctrdrbg.cc.inc
++++ b/crypto/fipsmodule/rand/ctrdrbg.cc.inc
+@@ -12,11 +12,11 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/ctrdrbg.h>
++#include <CBigNumBoringSSL_ctrdrbg.h>
+ 
+ #include <assert.h>
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ #include <algorithm>
+ 
+ #include "../../mem_internal.h"

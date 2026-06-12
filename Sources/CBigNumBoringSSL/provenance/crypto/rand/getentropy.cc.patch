@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/getentropy.cc b/crypto/rand/getentropy.cc
+index 7e85d8a..9e9148c 100644
+--- a/crypto/rand/getentropy.cc
++++ b/crypto/rand/getentropy.cc
+@@ -16,7 +16,7 @@
+ #define _DEFAULT_SOURCE  // Needed for getentropy on musl and glibc
+ #endif
+ 
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include "../bcm_support.h"
+ #include "internal.h"

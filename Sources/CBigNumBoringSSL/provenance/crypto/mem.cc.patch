@@ -1,0 +1,22 @@
+diff --git a/crypto/mem.cc b/crypto/mem.cc
+index 28ab3de..344e3c7 100644
+--- a/crypto/mem.cc
++++ b/crypto/mem.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include <assert.h>
+ #include <errno.h>
+@@ -21,7 +21,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #if defined(OPENSSL_WINDOWS)
+ #include <windows.h>

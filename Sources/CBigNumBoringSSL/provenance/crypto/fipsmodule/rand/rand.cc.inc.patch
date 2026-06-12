@@ -1,0 +1,19 @@
+diff --git a/crypto/fipsmodule/rand/rand.cc.inc b/crypto/fipsmodule/rand/rand.cc.inc
+index 9b29441..6c84f8c 100644
+--- a/crypto/fipsmodule/rand/rand.cc.inc
++++ b/crypto/fipsmodule/rand/rand.cc.inc
+@@ -20,10 +20,10 @@
+ #include <unistd.h>
+ #endif
+ 
+-#include <openssl/chacha.h>
+-#include <openssl/ctrdrbg.h>
+-#include <openssl/mem.h>
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_chacha.h>
++#include <CBigNumBoringSSL_ctrdrbg.h>
++#include <CBigNumBoringSSL_mem.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include "../../bcm_support.h"
+ #include "../../mem_internal.h"

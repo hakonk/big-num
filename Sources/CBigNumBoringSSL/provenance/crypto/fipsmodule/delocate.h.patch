@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/delocate.h b/crypto/fipsmodule/delocate.h
+index 7501548..365236c 100644
+--- a/crypto/fipsmodule/delocate.h
++++ b/crypto/fipsmodule/delocate.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_DELOCATE_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_DELOCATE_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #include "../internal.h"
+ 

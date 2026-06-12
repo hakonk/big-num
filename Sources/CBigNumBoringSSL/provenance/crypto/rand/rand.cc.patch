@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/rand.cc b/crypto/rand/rand.cc
+index 2aa3027..c80d93a 100644
+--- a/crypto/rand/rand.cc
++++ b/crypto/rand/rand.cc
+@@ -14,7 +14,7 @@
+ 
+ #include <limits.h>
+ 
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include "../bcm_support.h"
+ #include "../fipsmodule/bcm_interface.h"

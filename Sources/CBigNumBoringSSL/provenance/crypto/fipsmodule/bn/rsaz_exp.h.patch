@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/bn/rsaz_exp.h b/crypto/fipsmodule/bn/rsaz_exp.h
+index 9bd3cb9..df7a3e0 100644
+--- a/crypto/fipsmodule/bn/rsaz_exp.h
++++ b/crypto/fipsmodule/bn/rsaz_exp.h
+@@ -20,7 +20,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_BN_RSAZ_EXP_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_BN_RSAZ_EXP_H
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #include "../../internal.h"
+ #include "internal.h"

@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_arm_linux.h b/crypto/cpu_arm_linux.h
+index b01ee54..da81b9c 100644
+--- a/crypto/cpu_arm_linux.h
++++ b/crypto/cpu_arm_linux.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_CPU_ARM_LINUX_H
+ #define OPENSSL_HEADER_CRYPTO_CPU_ARM_LINUX_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #include <assert.h>
+ 

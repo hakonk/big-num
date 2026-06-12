@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/sha/internal.h b/crypto/fipsmodule/sha/internal.h
+index 0c8010b..69b92bd 100644
+--- a/crypto/fipsmodule/sha/internal.h
++++ b/crypto/fipsmodule/sha/internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_SHA_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_SHA_INTERNAL_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #include "../../internal.h"
+ 

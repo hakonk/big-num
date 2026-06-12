@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/bn/internal.h b/crypto/fipsmodule/bn/internal.h
+index 486fae1..5cd71bb 100644
+--- a/crypto/fipsmodule/bn/internal.h
++++ b/crypto/fipsmodule/bn/internal.h
+@@ -16,7 +16,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_BN_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_BN_INTERNAL_H
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #if defined(OPENSSL_X86_64) && defined(_MSC_VER)
+ #include <intrin.h>

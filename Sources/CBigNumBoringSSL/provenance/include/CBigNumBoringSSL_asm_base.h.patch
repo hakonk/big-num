@@ -1,0 +1,22 @@
+diff --git a/include/openssl/asm_base.h b/include/CBigNumBoringSSL_asm_base.h
+index 926eb6f..e2e0612 100644
+--- a/include/openssl/asm_base.h
++++ b/include/CBigNumBoringSSL_asm_base.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_ASM_BASE_H
+ #define OPENSSL_HEADER_ASM_BASE_H
+ 
+-#include <openssl/target.h>
++#include "CBigNumBoringSSL_target.h"
+ 
+ 
+ // This header contains symbols and common sections used by assembly files. It
+@@ -40,7 +40,7 @@
+ #if defined(__ASSEMBLER__)
+ 
+ #if defined(BORINGSSL_PREFIX)
+-#include <openssl/prefix_symbols_internal_S.h>
++#include <CBigNumBoringSSL_prefix_symbols_internal_S.h>
+ #endif  // BORINGSSL_PREFIX
+ 
+ #if defined(__ELF__)

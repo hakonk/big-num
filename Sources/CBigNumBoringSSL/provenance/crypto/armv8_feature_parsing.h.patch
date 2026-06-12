@@ -1,0 +1,13 @@
+diff --git a/crypto/armv8_feature_parsing.h b/crypto/armv8_feature_parsing.h
+index 5ebb876..0b35efe 100644
+--- a/crypto/armv8_feature_parsing.h
++++ b/crypto/armv8_feature_parsing.h
+@@ -1,7 +1,7 @@
+ #ifndef OPENSSL_CRYPTO_CPU_ARMV8_FEATURE_PARSING_H
+ #define OPENSSL_CRYPTO_CPU_ARMV8_FEATURE_PARSING_H
+ 
+-#include <openssl/cpu.h>
++#include <CBigNumBoringSSL_cpu.h>
+ #include <stdint.h>
+ 
+ #include "internal.h"

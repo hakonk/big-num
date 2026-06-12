@@ -1,0 +1,13 @@
+diff --git a/crypto/asn1/posix_time.cc b/crypto/asn1/posix_time.cc
+index d6162a6..ba9aecb 100644
+--- a/crypto/asn1/posix_time.cc
++++ b/crypto/asn1/posix_time.cc
+@@ -15,7 +15,7 @@
+ // Time conversion to/from POSIX time_t and struct tm, with no support
+ // for time zones other than UTC
+ 
+-#include <openssl/posix_time.h>
++#include <CBigNumBoringSSL_posix_time.h>
+ 
+ #include <assert.h>
+ #include <inttypes.h>

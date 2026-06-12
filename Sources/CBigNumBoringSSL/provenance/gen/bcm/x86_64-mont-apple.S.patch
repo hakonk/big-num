@@ -1,0 +1,14 @@
+diff --git a/gen/bcm/x86_64-mont-apple.S b/gen/bcm/x86_64-mont-apple.S
+index 27a168d..1c7b420 100644
+--- a/gen/bcm/x86_64-mont-apple.S
++++ b/gen/bcm/x86_64-mont-apple.S
+@@ -1,7 +1,8 @@
++#define BORINGSSL_PREFIX CBigNumBoringSSL
+ // This file is generated from a similarly-named Perl script in the BoringSSL
+ // source tree. Do not edit by hand.
+ 
+-#include <openssl/asm_base.h>
++#include <CBigNumBoringSSL_asm_base.h>
+ 
+ #if !defined(OPENSSL_NO_ASM) && defined(OPENSSL_X86_64) && defined(__APPLE__)
+ .text	

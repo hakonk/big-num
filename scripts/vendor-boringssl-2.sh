@@ -55,6 +55,21 @@ fi
 TMPDIR="$(mktemp -d /tmp/big-num-vendor.XXXXXX)"
 trap 'rm -rf "${TMPDIR}"' EXIT
 
+# Post-condition helpers. Every textual-surgery step below (sed/perl) asserts
+# its effect afterwards, so an upstream reformat that defeats a pattern fails
+# the vendor run loudly instead of silently shipping a broken tree. The worst
+# silent case: if the BORINGSSL_PREFIX injection misses, the package still
+# builds and tests green — just with unprefixed symbols.
+assert_contains() {  # file, pattern (grep BRE), description
+    grep -q "$2" "$1" || { echo "FATAL: $3 — expected to find '$2' in $1" >&2; exit 45; }
+}
+assert_absent() {  # file, pattern (grep BRE), description
+    if grep -q "$2" "$1"; then
+        echo "FATAL: $3 — '$2' still present in $1" >&2
+        exit 45
+    fi
+}
+
 if [ -n "${PREEXISTING_CLONE}" ]; then
     SRCROOT="${PREEXISTING_CLONE}"
     echo "USING existing clone at ${SRCROOT}"
@@ -324,6 +339,8 @@ ${SED} -i '/#define OPENSSL_HEADER_BASE_H/a\
 #if defined(__APPLE__) \&\& defined(__i386__)\
 #define OPENSSL_NO_ASM\
 #endif' "${DSTROOT}/include/openssl/base.h"
+assert_contains "${DSTROOT}/include/openssl/base.h" "OPENSSL_NO_ASM" \
+    "OPENSSL_NO_ASM gate injection failed (did upstream rename the base.h header guard?)"
 
 # Inject the BORINGSSL_PREFIX. This is THE knob that activates the upstream-
 # shipped prefix_symbols*.h headers. No symbol extraction or Go tooling needed.
@@ -337,6 +354,10 @@ ${SED} -i '/#define OPENSSL_HEADER_BASE_H/a\
 echo "INJECTING BORINGSSL_PREFIX=${PREFIX}"
 perl -pi -e '$_ .= qq(\n#define BORINGSSL_PREFIX '"${PREFIX}"'\n#undef __PRAGMA_REDEFINE_EXTNAME\n) if /#define OPENSSL_HEADER_BASE_H/' \
     "${DSTROOT}/include/openssl/base.h"
+assert_contains "${DSTROOT}/include/openssl/base.h" "#define BORINGSSL_PREFIX ${PREFIX}" \
+    "BORINGSSL_PREFIX injection failed (did upstream rename the base.h header guard?)"
+assert_contains "${DSTROOT}/include/openssl/base.h" "#undef __PRAGMA_REDEFINE_EXTNAME" \
+    "__PRAGMA_REDEFINE_EXTNAME undef injection failed"
 
 # .S files don't include base.h (only asm_base.h, via target.h), so the prefix
 # macro from base.h isn't visible during assembly. Stamp it at the top of every
@@ -352,6 +373,10 @@ echo "PATCHING crypto/bn/convert.cc — removing BIO-using BN_print*"
 ${SED} -i '/^#include <openssl\/bio.h>$/d' "${DSTROOT}/crypto/bn/convert.cc"
 ${SED} -i '/^int BN_print(BIO \*bp, const BIGNUM \*a) {$/,/^}$/d' "${DSTROOT}/crypto/bn/convert.cc"
 ${SED} -i '/^int BN_print_fp(FILE \*fp, const BIGNUM \*a) {$/,/^}$/d' "${DSTROOT}/crypto/bn/convert.cc"
+assert_absent "${DSTROOT}/crypto/bn/convert.cc" "BN_print" \
+    "BN_print strip failed (did upstream reformat the function signatures?)"
+assert_absent "${DSTROOT}/crypto/bn/convert.cc" "bio\.h" \
+    "bio.h include removal failed"
 
 echo "RENAMING and PREFIXING headers"
 (
@@ -379,6 +404,14 @@ echo "RENAMING and PREFIXING headers"
         -e "s|include <${PREFIX}_\\([a-z_][a-z_0-9]*\\.h\\)>|include \"${PREFIX}_\\1\"|g" \
         {} +
 )
+
+# No #include of an openssl/ path may survive the rewrite. (Comments may still
+# mention openssl/ paths; only include directives matter.)
+if grep -rEn '#[[:space:]]*include[[:space:]]*["<]openssl/' "${DSTROOT}" \
+        --include='*.h' --include='*.cc' --include='*.S' --include='*.inc'; then
+    echo "FATAL: unrewritten openssl/ includes remain (listed above)" >&2
+    exit 45
+fi
 
 echo "INSTALLING bn_unity.cc (replaces upstream bcm.cc as the FIPS unity TU)"
 cat > "${DSTROOT}/crypto/fipsmodule/bn_unity.cc" <<EOF
@@ -486,7 +519,9 @@ EOF
 
 echo "This directory is derived from BoringSSL cloned from https://boringssl.googlesource.com/boringssl at revision ${BORINGSSL_REVISION}" \
     > "${DSTROOT}/hash.txt"
-${SED} -i -e "s|BoringSSL Commit: [0-9a-f]\\+|BoringSSL Commit: ${BORINGSSL_REVISION}|" "${HERE}/Package.swift" 2>/dev/null || true
+${SED} -i -e "s|BoringSSL Commit: [0-9a-f]\\+|BoringSSL Commit: ${BORINGSSL_REVISION}|" "${HERE}/Package.swift"
+assert_contains "${HERE}/Package.swift" "BoringSSL Commit: ${BORINGSSL_REVISION}" \
+    "Package.swift commit stamp failed (is the '// BoringSSL Commit:' comment still present?)"
 
 # ---------------------------------------------------------------------------
 # Provenance.
@@ -601,6 +636,16 @@ echo "GENERATING MANIFEST.sha256"
         | xargs sha256sum \
         > MANIFEST.sha256
 )
+
+# The allowlist closure is only known to be complete when the package builds
+# and tests green — enforce that on every re-vendor rather than relying on
+# whoever runs the script to remember.
+if [ -z "${SKIP_BUILD:-}" ]; then
+    echo "VERIFYING the vendored tree builds and passes tests"
+    (cd "${HERE}" && swift build && swift test)
+else
+    echo "SKIPPED swift build/test (SKIP_BUILD set) — run 'swift test' before committing"
+fi
 
 echo "DONE: ${BORINGSSL_REVISION}"
 echo "Vendored: ${DSTROOT}"

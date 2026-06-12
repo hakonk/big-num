@@ -1,0 +1,13 @@
+diff --git a/include/openssl/bn.h b/include/CBigNumBoringSSL_bn.h
+index f0b5334..9267475 100644
+--- a/include/openssl/bn.h
++++ b/include/CBigNumBoringSSL_bn.h
+@@ -16,7 +16,7 @@
+ #ifndef OPENSSL_HEADER_BN_H
+ #define OPENSSL_HEADER_BN_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #include <inttypes.h>  // for PRIu64 and friends
+ #include <stdio.h>  // for FILE*

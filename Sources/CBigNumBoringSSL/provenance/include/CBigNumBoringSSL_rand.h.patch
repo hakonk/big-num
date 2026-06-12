@@ -1,0 +1,13 @@
+diff --git a/include/openssl/rand.h b/include/CBigNumBoringSSL_rand.h
+index 9d66a89..fe82ea0 100644
+--- a/include/openssl/rand.h
++++ b/include/CBigNumBoringSSL_rand.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_RAND_H
+ #define OPENSSL_HEADER_RAND_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

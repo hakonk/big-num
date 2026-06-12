@@ -1,0 +1,13 @@
+diff --git a/crypto/err/internal.h b/crypto/err/internal.h
+index e81768c..cc23cb2 100644
+--- a/crypto/err/internal.h
++++ b/crypto/err/internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_ERR_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_ERR_INTERNAL_H
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ 
+ BSSL_NAMESPACE_BEGIN

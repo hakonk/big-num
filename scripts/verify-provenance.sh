@@ -24,6 +24,18 @@ set -euo pipefail
 HERE="${HERE:-$(cd "$(dirname "$0")/.." && pwd)}"
 DSTROOT="${DSTROOT:-${HERE}/Sources/CBigNumBoringSSL}"
 
+# Generated files have no upstream original, so the reverse-patch check cannot
+# cover them — they are the residual trusted base. Pin their hashes here so
+# post-review tampering is still caught. When the heredocs in
+# vendor-boringssl-2.sh change intentionally, review the new files and update
+# these hashes in the same commit. (hash.txt is also generated, but its
+# content is derivable — it is checked against the pinned revision instead.)
+GENERATED_SHA256=(
+    "090090e037b203427389380af14f3e8adb13973b7eec93753ff562d5fd8cdfdd  crypto/fipsmodule/bn_unity.cc"
+    "86ed561e2f6488a49f2a3b16756c1247c9ba06327e3256a89e9cd9495b645895  include/CBigNumBoringSSL.h"
+    "da3299d50c954ee3d48c43e74384fcf67bbf47aa21edb952b605fde809dc9be0  include/module.modulemap"
+)
+
 PREEXISTING_CLONE=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -158,6 +170,37 @@ while read -r p; do
 "
     fi
 done < <(find "${DSTROOT}/provenance" -name '*.patch' -type f | LC_ALL=C sort)
+
+# Completeness — every file in the tree must have a PROVENANCE.txt row.
+# Without this, an injected source file (which SwiftPM would compile!) passes
+# verification as long as MANIFEST.sha256 is regenerated alongside it.
+while read -r f; do
+    rel="${f#./}"
+    case "${rel}" in
+        MANIFEST.sha256|PROVENANCE.txt|provenance/*) continue ;;
+    esac
+    if ! grep -qxF "${rel}" "${WORK}/known.txt"; then
+        fail=$((fail + 1))
+        fail_list="${fail_list}  ${rel}: file in tree but not in PROVENANCE.txt
+"
+    fi
+done < <(cd "${DSTROOT}" && find . -type f | LC_ALL=C sort)
+
+# Generated files — compare against the hashes pinned at the top of this
+# script, and check hash.txt records the pinned revision.
+for entry in "${GENERATED_SHA256[@]}"; do
+    rel="${entry#*  }"
+    if ! ( cd "${DSTROOT}" && echo "${entry}" | sha256sum -c - >/dev/null 2>&1 ); then
+        fail=$((fail + 1))
+        fail_list="${fail_list}  ${rel}: generated file does not match hash pinned in $(basename "$0")
+"
+    fi
+done
+if ! grep -qF "${REV}" "${DSTROOT}/hash.txt"; then
+    fail=$((fail + 1))
+    fail_list="${fail_list}  hash.txt: does not record pinned revision ${REV}
+"
+fi
 
 echo
 echo "Results:"

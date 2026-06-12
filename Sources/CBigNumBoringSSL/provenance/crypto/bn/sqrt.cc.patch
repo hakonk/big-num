@@ -1,0 +1,16 @@
+diff --git a/crypto/bn/sqrt.cc b/crypto/bn/sqrt.cc
+index 56a0f00..67f3f59 100644
+--- a/crypto/bn/sqrt.cc
++++ b/crypto/bn/sqrt.cc
+@@ -12,9 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ 
+ int BN_sqrt(BIGNUM *out_sqrt, const BIGNUM *in, BN_CTX *ctx) {

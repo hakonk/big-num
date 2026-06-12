@@ -1,0 +1,13 @@
+diff --git a/crypto/fuzzer_mode.cc b/crypto/fuzzer_mode.cc
+index a002a42..a0cc18b 100644
+--- a/crypto/fuzzer_mode.cc
++++ b/crypto/fuzzer_mode.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/crypto.h>
++#include <CBigNumBoringSSL_crypto.h>
+ 
+ #include "internal.h"
+ 

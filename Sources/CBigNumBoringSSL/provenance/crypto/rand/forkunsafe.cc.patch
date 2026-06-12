@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/forkunsafe.cc b/crypto/rand/forkunsafe.cc
+index 32760b2..c52343e 100644
+--- a/crypto/rand/forkunsafe.cc
++++ b/crypto/rand/forkunsafe.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include <stdlib.h>
+ 

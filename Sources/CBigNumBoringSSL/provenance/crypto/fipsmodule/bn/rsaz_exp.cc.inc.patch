@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/bn/rsaz_exp.cc.inc b/crypto/fipsmodule/bn/rsaz_exp.cc.inc
+index 105daae..e0c7bdd 100644
+--- a/crypto/fipsmodule/bn/rsaz_exp.cc.inc
++++ b/crypto/fipsmodule/bn/rsaz_exp.cc.inc
+@@ -21,7 +21,7 @@
+ 
+ #if defined(RSAZ_ENABLED)
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include <assert.h>
+ 

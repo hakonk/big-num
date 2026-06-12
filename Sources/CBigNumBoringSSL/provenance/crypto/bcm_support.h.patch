@@ -1,0 +1,13 @@
+diff --git a/crypto/bcm_support.h b/crypto/bcm_support.h
+index 20e6cef..97b3c68 100644
+--- a/crypto/bcm_support.h
++++ b/crypto/bcm_support.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_BCM_SUPPORT_H
+ #define OPENSSL_HEADER_CRYPTO_BCM_SUPPORT_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ #include <stdio.h>
+ 

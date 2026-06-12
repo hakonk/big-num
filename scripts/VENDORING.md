@@ -261,6 +261,17 @@ one upstream-shipped header.
     committed file except `MANIFEST.sha256` itself. Anyone can run
     `sha256sum -c MANIFEST.sha256` to confirm the tree hasn't been
     tampered with locally.
+15. **Build and test**: runs `swift build && swift test` so the
+    allowlist closure is proven complete on every re-vendor (set
+    `SKIP_BUILD=1` to opt out).
+
+Every textual-surgery step (6, 7, 9, 10, 13) asserts its effect
+afterwards — e.g. that `BORINGSSL_PREFIX` actually landed in `base.h`,
+that no `#include <openssl/…>` survived the rewrite, and that
+`BN_print` is really gone from `convert.cc`. An upstream reformat that
+defeats one of the sed/perl patterns therefore fails the vendor run
+loudly instead of silently shipping a tree that builds green with,
+say, unprefixed symbols.
 
 Combined, `PROVENANCE.txt`, the `provenance/` patches, `MANIFEST.sha256`,
 and this deterministic script give end-to-end attestation back to the
@@ -414,7 +425,16 @@ This is the end-to-end check, and it never trusts the vendor script. It:
    the vendored copy and asserts the result is byte-identical to the
    upstream original;
 4. checks `verbatim` files against upstream directly, and that every
-   patch maps to a `PROVENANCE.txt` row.
+   patch maps to a `PROVENANCE.txt` row;
+5. checks **completeness**: every file in the tree must have a
+   `PROVENANCE.txt` row, so an injected source file (which SwiftPM
+   would happily compile) cannot hide behind a regenerated manifest;
+6. checks the `generated` files — the residual trusted base, since they
+   have no upstream original to diff against — match SHA-256 hashes
+   pinned in the verify script itself, and that `hash.txt` records the
+   pinned revision. When the heredocs in `vendor-boringssl-2.sh` change
+   intentionally, review the regenerated files and update the pinned
+   hashes in the same commit.
 
 ```bash
 scripts/verify-provenance.sh                       # clones upstream itself
@@ -438,3 +458,14 @@ relationship to upstream — use it as a fast pre-check.
 You can also independently re-run `vendor-boringssl-2.sh` against the
 revision in `hash.txt`; the result should be byte-identical to what's
 committed (modulo `MANIFEST.sha256` itself, recomputed on each run).
+
+### CI integration
+
+`.github/workflows/ci.yml` runs `verify-provenance.sh` (against a
+blobless upstream clone) on every push and pull request, alongside the
+macOS and Linux test jobs.
+
+`.github/workflows/upstream-watch.yml` runs monthly and fails when
+upstream commits have touched any vendored path since the pinned
+revision — a deliberate forcing function so the vendored crypto cannot
+go stale silently. Re-vendoring resets it.

@@ -1,0 +1,15 @@
+diff --git a/crypto/asn1/internal.h b/crypto/asn1/internal.h
+index 970de10..bcb2f88 100644
+--- a/crypto/asn1/internal.h
++++ b/crypto/asn1/internal.h
+@@ -17,8 +17,8 @@
+ 
+ #include <time.h>
+ 
+-#include <openssl/asn1.h>
+-#include <openssl/asn1t.h>
++#include <CBigNumBoringSSL_asn1.h>
++#include <CBigNumBoringSSL_asn1t.h>
+ 
+ 
+ BSSL_NAMESPACE_BEGIN

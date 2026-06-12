@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_arm_linux.cc b/crypto/cpu_arm_linux.cc
+index d8ea98a..b77743a 100644
+--- a/crypto/cpu_arm_linux.cc
++++ b/crypto/cpu_arm_linux.cc
+@@ -24,7 +24,7 @@
+ 
+ #include <string_view>
+ 
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "cpu_arm_linux.h"
+ 

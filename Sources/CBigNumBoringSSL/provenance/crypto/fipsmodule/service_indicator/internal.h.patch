@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/service_indicator/internal.h b/crypto/fipsmodule/service_indicator/internal.h
+index 064618e..43a4b6e 100644
+--- a/crypto/fipsmodule/service_indicator/internal.h
++++ b/crypto/fipsmodule/service_indicator/internal.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_SERVICE_INDICATOR_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_SERVICE_INDICATOR_INTERNAL_H
+ 
+-#include <openssl/base.h>
++#include <CBigNumBoringSSL_base.h>
+ 
+ 
+ BSSL_NAMESPACE_BEGIN

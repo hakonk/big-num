@@ -1,0 +1,13 @@
+diff --git a/crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc b/crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc
+index 920cba2..82d5204 100644
+--- a/crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc
++++ b/crypto/fipsmodule/bn/asm/x86_64-gcc.cc.inc
+@@ -63,7 +63,7 @@
+  *    machine.
+  */
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ // TODO(davidben): Get this file working on MSVC x64.
+ #if !defined(OPENSSL_NO_ASM) && defined(OPENSSL_X86_64) && \

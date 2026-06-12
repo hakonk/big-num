@@ -1,0 +1,13 @@
+diff --git a/crypto/rand/urandom.cc b/crypto/rand/urandom.cc
+index d06ade7..1ff8922 100644
+--- a/crypto/rand/urandom.cc
++++ b/crypto/rand/urandom.cc
+@@ -16,7 +16,7 @@
+ #define _GNU_SOURCE  // needed for syscall() on Linux.
+ #endif
+ 
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include "../bcm_support.h"
+ #include "internal.h"

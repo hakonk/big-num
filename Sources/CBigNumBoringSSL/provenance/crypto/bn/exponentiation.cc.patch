@@ -1,0 +1,18 @@
+diff --git a/crypto/bn/exponentiation.cc b/crypto/bn/exponentiation.cc
+index f4a4b40..fadd0c7 100644
+--- a/crypto/bn/exponentiation.cc
++++ b/crypto/bn/exponentiation.cc
+@@ -12,11 +12,11 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #include <assert.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include "../fipsmodule/bn/internal.h"
+ 

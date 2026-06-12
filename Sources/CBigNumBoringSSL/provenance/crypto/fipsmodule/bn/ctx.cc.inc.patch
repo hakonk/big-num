@@ -1,0 +1,23 @@
+diff --git a/crypto/fipsmodule/bn/ctx.cc.inc b/crypto/fipsmodule/bn/ctx.cc.inc
+index 1d67281..fa6c731 100644
+--- a/crypto/fipsmodule/bn/ctx.cc.inc
++++ b/crypto/fipsmodule/bn/ctx.cc.inc
+@@ -12,15 +12,15 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #include <assert.h>
+ #include <string.h>
+ 
+ #include <utility>
+ 
+-#include <openssl/err.h>
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_err.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "../../internal.h"
+ #include "../../mem_internal.h"

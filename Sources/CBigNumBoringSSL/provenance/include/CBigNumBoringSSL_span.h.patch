@@ -1,0 +1,13 @@
+diff --git a/include/openssl/span.h b/include/CBigNumBoringSSL_span.h
+index eb05f13..289b5d4 100644
+--- a/include/openssl/span.h
++++ b/include/CBigNumBoringSSL_span.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_SSL_SPAN_H
+ #define OPENSSL_HEADER_SSL_SPAN_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if !defined(BORINGSSL_NO_CXX)
+ 

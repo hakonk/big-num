@@ -1,0 +1,13 @@
+diff --git a/include/openssl/err.h b/include/CBigNumBoringSSL_err.h
+index c7923fe..5d11d06 100644
+--- a/include/openssl/err.h
++++ b/include/CBigNumBoringSSL_err.h
+@@ -17,7 +17,7 @@
+ 
+ #include <stdio.h>
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

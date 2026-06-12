@@ -1,0 +1,21 @@
+diff --git a/crypto/fipsmodule/bcm_interface.h b/crypto/fipsmodule/bcm_interface.h
+index d4ea95d..338ab37 100644
+--- a/crypto/fipsmodule/bcm_interface.h
++++ b/crypto/fipsmodule/bcm_interface.h
+@@ -15,11 +15,11 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_BCM_INTERFACE_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_BCM_INTERFACE_H
+ 
+-#include <openssl/aes.h>
+-#include <openssl/mldsa.h>
+-#include <openssl/mlkem.h>
+-#include <openssl/sha.h>
+-#include <openssl/sha2.h>
++#include <CBigNumBoringSSL_aes.h>
++#include <CBigNumBoringSSL_mldsa.h>
++#include <CBigNumBoringSSL_mlkem.h>
++#include <CBigNumBoringSSL_sha.h>
++#include <CBigNumBoringSSL_sha2.h>
+ 
+ 
+ // This header will eventually become the interface between BCM and the

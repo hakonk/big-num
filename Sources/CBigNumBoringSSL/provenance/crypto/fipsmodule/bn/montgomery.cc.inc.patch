@@ -1,0 +1,23 @@
+diff --git a/crypto/fipsmodule/bn/montgomery.cc.inc b/crypto/fipsmodule/bn/montgomery.cc.inc
+index 4bc6247..8e6cdc5 100644
+--- a/crypto/fipsmodule/bn/montgomery.cc.inc
++++ b/crypto/fipsmodule/bn/montgomery.cc.inc
+@@ -12,15 +12,15 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #include <assert.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
+-#include <openssl/err.h>
+-#include <openssl/mem.h>
++#include <CBigNumBoringSSL_err.h>
++#include <CBigNumBoringSSL_mem.h>
+ 
+ #include "../../internal.h"
+ #include "../../mem_internal.h"

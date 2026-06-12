@@ -1,0 +1,10 @@
+diff --git a/include/openssl/cpu.h b/include/CBigNumBoringSSL_cpu.h
+index 2edeca2..5c68a9b 100644
+--- a/include/openssl/cpu.h
++++ b/include/CBigNumBoringSSL_cpu.h
+@@ -15,4 +15,4 @@
+ // This header is provided for compatibility with older revisions of BoringSSL.
+ // TODO(davidben): Remove this header.
+ 
+-#include "crypto.h"
++#include "CBigNumBoringSSL_crypto.h"

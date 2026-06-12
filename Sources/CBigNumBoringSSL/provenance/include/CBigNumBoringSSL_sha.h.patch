@@ -1,0 +1,19 @@
+diff --git a/include/openssl/sha.h b/include/CBigNumBoringSSL_sha.h
+index ba17bfa..50af1b8 100644
+--- a/include/openssl/sha.h
++++ b/include/CBigNumBoringSSL_sha.h
+@@ -15,12 +15,12 @@
+ #ifndef OPENSSL_HEADER_SHA_H
+ #define OPENSSL_HEADER_SHA_H
+ 
+-#include <openssl/base.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"  // IWYU pragma: export
+ 
+ // `sha.h` historically included SHA-1 and SHA-2 hash functions. So, for
+ // backward compatibility `sha2.h` is included here. New uses of this header
+ // should include sha2.h unless SHA-1 family functions are required.
+-#include <openssl/sha2.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_sha2.h"  // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

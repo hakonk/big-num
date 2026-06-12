@@ -1,0 +1,19 @@
+diff --git a/crypto/fipsmodule/bn/shift.cc.inc b/crypto/fipsmodule/bn/shift.cc.inc
+index 4799bac..6225e38 100644
+--- a/crypto/fipsmodule/bn/shift.cc.inc
++++ b/crypto/fipsmodule/bn/shift.cc.inc
+@@ -12,12 +12,12 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/bn.h>
++#include <CBigNumBoringSSL_bn.h>
+ 
+ #include <assert.h>
+ #include <string.h>
+ 
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include "internal.h"
+ 

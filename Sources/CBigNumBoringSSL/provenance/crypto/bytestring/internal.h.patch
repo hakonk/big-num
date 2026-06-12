@@ -1,0 +1,17 @@
+diff --git a/crypto/bytestring/internal.h b/crypto/bytestring/internal.h
+index 35bd4c9..db45b7a 100644
+--- a/crypto/bytestring/internal.h
++++ b/crypto/bytestring/internal.h
+@@ -15,9 +15,9 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_BYTESTRING_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_BYTESTRING_INTERNAL_H
+ 
+-#include <openssl/asn1.h>
+-#include <openssl/bytestring.h>
+-#include <openssl/err.h>
++#include <CBigNumBoringSSL_asn1.h>
++#include <CBigNumBoringSSL_bytestring.h>
++#include <CBigNumBoringSSL_err.h>
+ 
+ #include <type_traits>
+ 

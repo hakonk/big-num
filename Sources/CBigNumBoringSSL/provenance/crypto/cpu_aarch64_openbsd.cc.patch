@@ -1,0 +1,13 @@
+diff --git a/crypto/cpu_aarch64_openbsd.cc b/crypto/cpu_aarch64_openbsd.cc
+index 235c14a..882cfe6 100644
+--- a/crypto/cpu_aarch64_openbsd.cc
++++ b/crypto/cpu_aarch64_openbsd.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/cpu.h>
++#include <CBigNumBoringSSL_cpu.h>
+ 
+ #if defined(OPENSSL_AARCH64) && defined(OPENSSL_OPENBSD) && \
+     !defined(OPENSSL_STATIC_ARMCAP) && !defined(OPENSSL_NO_ASM)

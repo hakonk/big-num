@@ -1,0 +1,15 @@
+diff --git a/crypto/fipsmodule/rand/internal.h b/crypto/fipsmodule/rand/internal.h
+index 0913f00..9c0dff9 100644
+--- a/crypto/fipsmodule/rand/internal.h
++++ b/crypto/fipsmodule/rand/internal.h
+@@ -15,8 +15,8 @@
+ #ifndef OPENSSL_HEADER_CRYPTO_FIPSMODULE_RAND_INTERNAL_H
+ #define OPENSSL_HEADER_CRYPTO_FIPSMODULE_RAND_INTERNAL_H
+ 
+-#include <openssl/aes.h>
+-#include <openssl/ctrdrbg.h>
++#include <CBigNumBoringSSL_aes.h>
++#include <CBigNumBoringSSL_ctrdrbg.h>
+ 
+ #include "../../bcm_support.h"
+ #include "../aes/internal.h"

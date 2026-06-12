@@ -1,0 +1,15 @@
+diff --git a/crypto/fipsmodule/sha/sha256.cc.inc b/crypto/fipsmodule/sha/sha256.cc.inc
+index 20cfda9..89fa561 100644
+--- a/crypto/fipsmodule/sha/sha256.cc.inc
++++ b/crypto/fipsmodule/sha/sha256.cc.inc
+@@ -14,8 +14,8 @@
+ 
+ #include <string.h>
+ 
+-#include <openssl/mem.h>
+-#include <openssl/span.h>
++#include <CBigNumBoringSSL_mem.h>
++#include <CBigNumBoringSSL_span.h>
+ 
+ #include "../../internal.h"
+ #include "../bcm_interface.h"

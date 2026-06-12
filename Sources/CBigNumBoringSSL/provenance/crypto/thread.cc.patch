@@ -1,0 +1,13 @@
+diff --git a/crypto/thread.cc b/crypto/thread.cc
+index cdc4744..e4176d2 100644
+--- a/crypto/thread.cc
++++ b/crypto/thread.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/thread.h>
++#include <CBigNumBoringSSL_thread.h>
+ 
+ 
+ int CRYPTO_num_locks() { return 1; }

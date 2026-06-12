@@ -1,0 +1,15 @@
+diff --git a/include/openssl/asn1t.h b/include/CBigNumBoringSSL_asn1t.h
+index 22b1688..1370fac 100644
+--- a/include/openssl/asn1t.h
++++ b/include/CBigNumBoringSSL_asn1t.h
+@@ -15,8 +15,8 @@
+ #ifndef OPENSSL_HEADER_ASN1T_H
+ #define OPENSSL_HEADER_ASN1T_H
+ 
+-#include <openssl/asn1.h>
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_asn1.h"
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

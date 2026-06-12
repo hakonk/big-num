@@ -1,0 +1,13 @@
+diff --git a/include/openssl/thread.h b/include/CBigNumBoringSSL_thread.h
+index 3d8c925..79d2ce2 100644
+--- a/include/openssl/thread.h
++++ b/include/CBigNumBoringSSL_thread.h
+@@ -17,7 +17,7 @@
+ 
+ #include <sys/types.h>
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

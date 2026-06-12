@@ -1,0 +1,22 @@
+diff --git a/include/openssl/asn1.h b/include/CBigNumBoringSSL_asn1.h
+index e891382..7fea2de 100644
+--- a/include/openssl/asn1.h
++++ b/include/CBigNumBoringSSL_asn1.h
+@@ -15,13 +15,13 @@
+ #ifndef OPENSSL_HEADER_ASN1_H
+ #define OPENSSL_HEADER_ASN1_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #include <time.h>
+ 
+-#include <openssl/bio.h>
+-#include <openssl/bn.h>
+-#include <openssl/stack.h>
++#include "CBigNumBoringSSL_bio.h"
++#include "CBigNumBoringSSL_bn.h"
++#include "CBigNumBoringSSL_stack.h"
+ 
+ #if defined(__cplusplus)
+ extern "C" {

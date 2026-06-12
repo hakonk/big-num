@@ -1,0 +1,13 @@
+diff --git a/include/openssl/arm_arch.h b/include/CBigNumBoringSSL_arm_arch.h
+index d89b4bb..5e436c4 100644
+--- a/include/openssl/arm_arch.h
++++ b/include/CBigNumBoringSSL_arm_arch.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_ARM_ARCH_H
+ #define OPENSSL_HEADER_ARM_ARCH_H
+ 
+-#include <openssl/target.h>
++#include "CBigNumBoringSSL_target.h"
+ 
+ // This header historically defined constants used by Arm assembly, which was
+ // exposed publicly to simplify the build. This is no longer needed, but we

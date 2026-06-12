@@ -1,0 +1,13 @@
+diff --git a/include/openssl/stack.h b/include/CBigNumBoringSSL_stack.h
+index 3bda503..2c37881 100644
+--- a/include/openssl/stack.h
++++ b/include/CBigNumBoringSSL_stack.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_STACK_H
+ #define OPENSSL_HEADER_STACK_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

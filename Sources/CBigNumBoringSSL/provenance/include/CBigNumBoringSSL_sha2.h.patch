@@ -1,0 +1,13 @@
+diff --git a/include/openssl/sha2.h b/include/CBigNumBoringSSL_sha2.h
+index 7bb3f21..d1d214a 100644
+--- a/include/openssl/sha2.h
++++ b/include/CBigNumBoringSSL_sha2.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_SHA2_H
+ #define OPENSSL_HEADER_SHA2_H
+ 
+-#include <openssl/base.h>  // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"  // IWYU pragma: export
+ 
+ #if defined(__cplusplus)
+ extern "C" {

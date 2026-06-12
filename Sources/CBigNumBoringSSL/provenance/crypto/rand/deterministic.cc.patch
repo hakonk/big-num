@@ -1,0 +1,22 @@
+diff --git a/crypto/rand/deterministic.cc b/crypto/rand/deterministic.cc
+index d2fccee..1e25ea4 100644
+--- a/crypto/rand/deterministic.cc
++++ b/crypto/rand/deterministic.cc
+@@ -12,7 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
+-#include <openssl/rand.h>
++#include <CBigNumBoringSSL_rand.h>
+ 
+ #include "../bcm_support.h"
+ #include "internal.h"
+@@ -21,7 +21,7 @@
+ 
+ #include <string.h>
+ 
+-#include <openssl/chacha.h>
++#include <CBigNumBoringSSL_chacha.h>
+ 
+ #include "../internal.h"
+ 

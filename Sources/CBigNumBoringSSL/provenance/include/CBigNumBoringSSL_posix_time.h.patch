@@ -1,0 +1,13 @@
+diff --git a/include/openssl/posix_time.h b/include/CBigNumBoringSSL_posix_time.h
+index b9e0a77..a830ebb 100644
+--- a/include/openssl/posix_time.h
++++ b/include/CBigNumBoringSSL_posix_time.h
+@@ -15,7 +15,7 @@
+ #ifndef OPENSSL_HEADER_POSIX_TIME_H
+ #define OPENSSL_HEADER_POSIX_TIME_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+ #include <time.h>
+ 

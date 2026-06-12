@@ -35,3 +35,14 @@ jobs:
         fetch-depth: 1
     - name: Test
       run: swift test
+
+  verify-provenance:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+    - name: Clone BoringSSL (blobless)
+      run: git clone --filter=blob:none https://boringssl.googlesource.com/boringssl /tmp/boringssl
+    - name: Verify vendored tree against upstream
+      run: scripts/verify-provenance.sh -p /tmp/boringssl

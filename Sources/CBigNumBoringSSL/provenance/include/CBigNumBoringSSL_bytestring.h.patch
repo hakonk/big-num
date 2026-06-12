@@ -1,0 +1,16 @@
+diff --git a/include/openssl/bytestring.h b/include/CBigNumBoringSSL_bytestring.h
+index 3e1cfe5..53e4b01 100644
+--- a/include/openssl/bytestring.h
++++ b/include/CBigNumBoringSSL_bytestring.h
+@@ -15,9 +15,9 @@
+ #ifndef OPENSSL_HEADER_BYTESTRING_H
+ #define OPENSSL_HEADER_BYTESTRING_H
+ 
+-#include <openssl/base.h>   // IWYU pragma: export
++#include "CBigNumBoringSSL_base.h"   // IWYU pragma: export
+ 
+-#include <openssl/span.h>
++#include "CBigNumBoringSSL_span.h"
+ #include <time.h>
+ 
+ #if defined(__cplusplus)
