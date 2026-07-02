@@ -51,7 +51,7 @@ Sources/CBigNumBoringSSL/
 │       ├── bn_unity.cc             # GENERATED — replaces upstream bcm.cc
 │       ├── bn/, aes/, rand/, sha/, entropy/   # only the .cc.inc bn_unity uses
 │       └── service_indicator/      # internal.h only (stubs inlined into bn_unity.cc)
-├── gen/                            # only BN/AES/SHA-2 assembly + err_data.cc
+├── gen/                            # only BN/AES/SHA-2/rdrand assembly + err_data.cc
 ├── provenance/                     # one reversible *.patch per modified file
 ├── hash.txt                        # upstream commit hash
 ├── PROVENANCE.txt                  # per-file mapping back to upstream
@@ -310,7 +310,14 @@ matching the rest of the codebase.
 Cross-platform: Linux Clang and Linux GCC both define
 `__PRAGMA_REDEFINE_EXTNAME`, so the same `#undef` applies and the same
 fix works for `swift test` inside `swift:6.3` Docker (verified on
-linux/arm64).
+linux/arm64 and linux/x86_64).
+
+Note that `swift build` alone does not validate the closure — a static
+library links even with unresolved symbols. Only `swift test` (or any
+executable link) proves every referenced symbol is present, and it must
+run on an x86_64 host too: the aarch64 link resolves fewer assembly
+entry points (e.g. `CRYPTO_rdrand*` is only referenced on
+`OPENSSL_X86_64`).
 
 ## Why the old script is obsolete
 

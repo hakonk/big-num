@@ -125,6 +125,8 @@ gen/bcm/bn-armv8-win.S	gen/bcm/bn-armv8-win.S	asm-prefix
 gen/bcm/bsaes-armv7-linux.S	gen/bcm/bsaes-armv7-linux.S	asm-prefix
 gen/bcm/co-586-apple.S	gen/bcm/co-586-apple.S	asm-prefix
 gen/bcm/co-586-linux.S	gen/bcm/co-586-linux.S	asm-prefix
+gen/bcm/rdrand-x86_64-apple.S	gen/bcm/rdrand-x86_64-apple.S	asm-prefix
+gen/bcm/rdrand-x86_64-linux.S	gen/bcm/rdrand-x86_64-linux.S	asm-prefix
 gen/bcm/rsaz-avx2-apple.S	gen/bcm/rsaz-avx2-apple.S	asm-prefix
 gen/bcm/rsaz-avx2-linux.S	gen/bcm/rsaz-avx2-linux.S	asm-prefix
 gen/bcm/sha256-586-apple.S	gen/bcm/sha256-586-apple.S	asm-prefix

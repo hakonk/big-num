@@ -1,11 +1,11 @@
 name: BoringSSL upstream watch
 
 # Monthly forcing function for re-vendoring: fails when upstream commits have
-# touched any path we vendor since the pinned revision. Intentionally noisy —
+# touched any file we vendor since the pinned revision. Intentionally noisy —
 # vendored crypto must not go stale silently. Re-vendoring with
-# scripts/vendor-boringssl-2.sh resets it. Narrow the path list below if the
-# signal proves too chatty (include/openssl churns on every prefix_symbols
-# regeneration).
+# scripts/vendor-boringssl-2.sh resets it. The watched set is derived from
+# PROVENANCE.txt (upstream path column), so it tracks the vendored tree
+# exactly and cannot drift when the allowlist changes.
 
 on:
   schedule:
@@ -22,15 +22,13 @@ jobs:
     - name: Check for upstream changes to vendored paths
       run: |
         git clone --filter=blob:none https://boringssl.googlesource.com/boringssl /tmp/boringssl
-        PINNED=$(awk '/^# upstream_revision/ {print $NF}' Sources/CBigNumBoringSSL/PROVENANCE.txt)
+        PROV=Sources/CBigNumBoringSSL/PROVENANCE.txt
+        PINNED=$(awk '/^# upstream_revision/ {print $NF}' "${PROV}")
         echo "Pinned revision: ${PINNED}"
+        # Watch exactly the upstream files we vendor (column 2; '-' = generated).
+        readarray -t PATHS < <(grep -v '^#' "${PROV}" | cut -f2 | grep -v '^-$' | LC_ALL=C sort -u)
+        echo "Watching ${#PATHS[@]} upstream paths"
         cd /tmp/boringssl
-        PATHS=(
-          crypto/bn crypto/bytestring crypto/err crypto/rand
-          crypto/fipsmodule/aes crypto/fipsmodule/bn crypto/fipsmodule/entropy
-          crypto/fipsmodule/rand crypto/fipsmodule/sha
-          gen/bcm gen/crypto include/openssl
-        )
         N=$(git rev-list --count "${PINNED}..origin/main" -- "${PATHS[@]}")
         if [ "${N}" -gt 0 ]; then
           echo "::error::${N} upstream commit(s) touch vendored paths since ${PINNED} — re-vendor with scripts/vendor-boringssl-2.sh"

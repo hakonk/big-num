@@ -113,7 +113,7 @@ rm -rf "${DSTROOT}/include" "${DSTROOT}/crypto" "${DSTROOT}/gen" \
 #   * crypto/fipsmodule/entropy/   — entropy whitening (uses SHA-512)
 #   * crypto/fipsmodule/sha/       — SHA-256/SHA-512 (no SHA-1)
 #   * crypto/fipsmodule/service_indicator/internal.h — types only; stubs inlined into bn_unity.cc
-#   * gen/bcm/  — BN, AES, SHA-256/512 assembly (no GCM/GHASH/P256/RDRAND/SHA1)
+#   * gen/bcm/  — BN, AES, SHA-256/512, rdrand assembly (no GCM/GHASH/P256/SHA1)
 #   * gen/crypto/err_data.cc — global error-string table
 #   * include/openssl/*.h — narrowed to what the kept .cc files include
 #
@@ -214,8 +214,12 @@ ALLOW_FILES=(
     'crypto/fipsmodule/sha/sha256.cc.inc'
     'crypto/fipsmodule/sha/sha512.cc.inc'
     # Assembly. Dropped: aes-gcm/aesni-gcm/aesv8-gcm/ghash (GCM not used by
-    # DRBG), p256-* (no EC), rdrand-* (we use sysrand), sha1-* (no SHA-1
-    # consumers in our slice), md5-/chacha-/aes128gcmsiv (no AEADs).
+    # DRBG), p256-* (no EC), sha1-* (no SHA-1 consumers in our slice),
+    # md5-/chacha-/aes128gcmsiv (no AEADs). rdrand-x86_64 must ship:
+    # rand.cc.inc references CRYPTO_rdrand* whenever OPENSSL_X86_64 &&
+    # !OPENSSL_NO_ASM, so dropping it breaks linking on Intel. (No Windows
+    # variant needed — upstream ships .asm there and we inject OPENSSL_NO_ASM
+    # for Windows x86/x86_64 into base.h.)
     'gen/bcm/aesni-x86-apple.S'
     'gen/bcm/aesni-x86-linux.S'
     'gen/bcm/aesni-x86_64-apple.S'
@@ -236,6 +240,8 @@ ALLOW_FILES=(
     'gen/bcm/bsaes-armv7-linux.S'
     'gen/bcm/co-586-apple.S'
     'gen/bcm/co-586-linux.S'
+    'gen/bcm/rdrand-x86_64-apple.S'
+    'gen/bcm/rdrand-x86_64-linux.S'
     'gen/bcm/rsaz-avx2-apple.S'
     'gen/bcm/rsaz-avx2-linux.S'
     'gen/bcm/sha256-586-apple.S'
@@ -552,12 +558,19 @@ gen_patch() {
     # Pinned diff settings keep the output reproducible regardless of the
     # caller's git config; --no-prefix yields clean "a/<up>" / "b/<vend>"
     # headers that patch(1) and `git apply` both accept.
+    # git diff exits 1 when the files differ; anything above 1 is a real
+    # error and must abort rather than mislabel the file as verbatim.
+    local rc=0
     ( cd "${stg}" \
         && git -c core.autocrlf=false \
                -c diff.algorithm=myers \
                -c diff.indentHeuristic=true \
                diff --no-index --no-prefix --no-color --unified=3 \
-               "a/${up}" "b/${vend}" ) > "${out}" || true
+               "a/${up}" "b/${vend}" ) > "${out}" || rc=$?
+    if [ "${rc}" -gt 1 ]; then
+        echo "FATAL: git diff failed (exit ${rc}) for ${vend}" >&2
+        exit 46
+    fi
     rm -rf "${stg}"
     [ -s "${out}" ] && return 0
     rm -f "${out}"
@@ -567,12 +580,14 @@ gen_patch() {
 rm -rf "${DSTROOT}/provenance"
 
 # Enumerate vendored files into a list up front, so that creating provenance/
-# during the loop below cannot perturb the file walk.
+# during the loop below cannot perturb the file walk. Enumerate by exclusion,
+# not by extension allowlist: every file in the tree must end up with a
+# PROVENANCE.txt row (verify-provenance.sh enforces exactly that), so a new
+# upstream file type must flow through this loop rather than skip it.
 LISTFILE="${TMPDIR}/vendored-files.txt"
 ( cd "${DSTROOT}" && find . -type f \
-    \( -name "*.h" -o -name "*.cc" -o -name "*.S" -o -name "*.cc.inc" \
-       -o -name "*.c.inc" -o -name "*.inc" -o -name "*.modulemap" \
-       -o -name "hash.txt" \) \
+    -not -name "MANIFEST.sha256" -not -name "PROVENANCE.txt" \
+    -not -path "./provenance/*" \
     | LC_ALL=C sort ) > "${LISTFILE}"
 
 {

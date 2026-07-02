@@ -1,4 +1,4 @@
-4dee62cec0a04b308ca36553e1e25366090bee6043568b9bb4146547fcb758e7  ./PROVENANCE.txt
+a06201af2f3557d4f9c557995059a1d1f0fdf5322163e7a78c6cf6770ce0ffc5  ./PROVENANCE.txt
 7322a1e58264412bc5882140de57ed29dc02b53ed00925e8ffac281a59700f21  ./crypto/armv8_feature_parsing.h
 e0c779d79adf189d7bb50a2415a47276aa0f2139ed0f9d11dc880d9216110e2e  ./crypto/asn1/internal.h
 3de059b14fba188e6a40e91127646e2d18a1ea6ceeca1106c61a0732956ea558  ./crypto/asn1/posix_time.cc
@@ -105,6 +105,8 @@ c2648fbdadc7e193243dd0b16878bf1aaf249e28a5b40cdf1d891ab8fb4305e8  ./gen/bcm/bn-a
 beeb4192f776c90b361352da3af5435016b0e086ef6a5fe5b6769ab1f4099ca5  ./gen/bcm/bsaes-armv7-linux.S
 c7119e0a2a9ae06a216925b5ca1399787772dee84d1a7ec49a50ddcabd74ac85  ./gen/bcm/co-586-apple.S
 cf931b28ab9ef512932db70ec0c6514369a7e620934440669f58c11836c15f77  ./gen/bcm/co-586-linux.S
+35f50110f032d1e0ae97b3b5abf12ac18331869f39aeb6156e3ccba6455151e1  ./gen/bcm/rdrand-x86_64-apple.S
+a01c6e1396528ff8649547682ae4643ccdf1d7447d976dd3d7efd3097340f7e5  ./gen/bcm/rdrand-x86_64-linux.S
 8eefcf726d181e72de21c556877637e1ab951ec301a4f7c7d7e7eff4786f7c04  ./gen/bcm/rsaz-avx2-apple.S
 d89e0a98cdfc961c246e1adc39a50a57bddb0969fca2619c755886b3e72eef91  ./gen/bcm/rsaz-avx2-linux.S
 20483f554dd92eeaa83a1b5bf26fa065efa74cac3f241e6f6350fc630d29ba59  ./gen/bcm/sha256-586-apple.S
@@ -268,6 +270,8 @@ da7a90832ee81e2f3147bbe60a866305844514bdc7834a73bed1c112c4d0ea9e  ./provenance/g
 246ef1dde3f8e488d920e5c2b45bd5546dec7eb661f55dff4ef21501a8aa1e30  ./provenance/gen/bcm/bsaes-armv7-linux.S.patch
 ab08bc0c180b7a8af89d0a67552372a5599535c504dfad611c6f46297338d90b  ./provenance/gen/bcm/co-586-apple.S.patch
 9f73cd8e3a57e9189cfbb1d4ce6ff11b180705da85bf0963711cd433ef4d924d  ./provenance/gen/bcm/co-586-linux.S.patch
+022a5117ccc79c8b735228979343b65ebac2a82d9f1c7262423c7e8ccd6bcd26  ./provenance/gen/bcm/rdrand-x86_64-apple.S.patch
+42687af534aca95d10f8c149647392ea4b5d393b35e1327e42e95659470b552c  ./provenance/gen/bcm/rdrand-x86_64-linux.S.patch
 01004fdd3da178a143fc4af0c0cd80d4a5400dc8b0cde42da36dff1951d79243  ./provenance/gen/bcm/rsaz-avx2-apple.S.patch
 91de290bb11b57595dcbd5a40fc7f6d3194cadc04a67d484f2771b9dd1918516  ./provenance/gen/bcm/rsaz-avx2-linux.S.patch
 1016378832fd3dee36cfe4fada2a441be3d9f99d396b16d74a7ac7b85eda9c8c  ./provenance/gen/bcm/sha256-586-apple.S.patch

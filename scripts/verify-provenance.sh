@@ -80,6 +80,16 @@ else
     echo "  FAIL — run 'sha256sum -c MANIFEST.sha256' in ${DSTROOT} for details" >&2
     exit 1
 fi
+# sha256sum -c only checks the files the manifest lists; also require that it
+# lists every file in the tree, so an added file cannot ride along unhashed.
+( cd "${DSTROOT}" && find . -type f -not -name MANIFEST.sha256 | LC_ALL=C sort ) > "${WORK}/tree.txt"
+sed 's/^[0-9a-f]*  //' "${DSTROOT}/MANIFEST.sha256" | LC_ALL=C sort > "${WORK}/listed.txt"
+if ! diff -u "${WORK}/listed.txt" "${WORK}/tree.txt" > "${WORK}/manifest-diff.txt"; then
+    echo "  FAIL — MANIFEST.sha256 does not cover the tree exactly:" >&2
+    cat "${WORK}/manifest-diff.txt" >&2
+    exit 1
+fi
+echo "  OK — manifest covers every file in the tree"
 
 # -----------------------------------------------------------------------------
 # Step 2 — obtain a pristine upstream checkout at the pinned revision.
@@ -159,17 +169,29 @@ while IFS=$'\t' read -r vend up xform; do
     fi
 done < "${PROV}"
 
-# Orphan check — every patch must map to a PROVENANCE.txt row.
+# Orphan check — every file under provenance/ must be a *.patch mapping to a
+# PROVENANCE.txt row. Anything else in there is unaccounted-for content (it
+# is excluded from the build and from the completeness check below, so it
+# must be rejected here).
 grep -v '^#' "${PROV}" | cut -f1 | grep -v '^$' > "${WORK}/known.txt" || true
 while read -r p; do
     rel="${p#${DSTROOT}/provenance/}"
+    case "${rel}" in
+        *.patch) ;;
+        *)
+            fail=$((fail + 1))
+            fail_list="${fail_list}  provenance/${rel}: not a patch file
+"
+            continue
+            ;;
+    esac
     rel="${rel%.patch}"
     if ! grep -qxF "${rel}" "${WORK}/known.txt"; then
         fail=$((fail + 1))
         fail_list="${fail_list}  ${rel}: orphan patch (no PROVENANCE.txt row)
 "
     fi
-done < <(find "${DSTROOT}/provenance" -name '*.patch' -type f | LC_ALL=C sort)
+done < <(find "${DSTROOT}/provenance" -type f | LC_ALL=C sort)
 
 # Completeness — every file in the tree must have a PROVENANCE.txt row.
 # Without this, an injected source file (which SwiftPM would compile!) passes
